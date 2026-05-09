@@ -55,7 +55,7 @@ export default function SOSAdminPanel() {
 
   // 3. DELETE FUNCTION (With Confirmation)
   const deleteAlert = async (alertId) => {
-    if (window.confirm("Bhai, kya aap pakka is record ko delete karna chahte ho?")) {
+    if (window.confirm("Are you sure you want to permanently delete this record?")) {
       try {
         await deleteDoc(doc(db, "alerts", alertId));
       } catch (error) {
