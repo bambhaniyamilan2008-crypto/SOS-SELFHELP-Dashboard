@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   AlertCircle, CheckCircle, MapPin, Phone, 
-  ShieldAlert, Users, Clock, Trash2, ExternalLink 
+  ShieldAlert, Users, Clock, Trash2, ExternalLink,
+  Shield, Activity, MessageCircle // 🔥 Naye Icons Import Kiye
 } from 'lucide-react';
 
 // FIREBASE IMPORTS
@@ -18,11 +19,10 @@ export default function SOSAdminPanel() {
 
   // 1. HIGH-ACCURACY REAL-TIME LISTENER
   useEffect(() => {
-    // Alerts collection ko monitor kar raha hai (God Mode)
     const q = query(
       collection(db, "alerts"), 
       orderBy("timestamp", "desc"), 
-      limit(100) // Accuracy ke liye limit badha di hai
+      limit(100) 
     );
     
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -30,7 +30,6 @@ export default function SOSAdminPanel() {
       querySnapshot.forEach((doc) => {
         alertsData.push({ id: doc.id, ...doc.data() });
       });
-      // Force update with spread to ensure React detects changes
       setAlerts([...alertsData]); 
       setLoading(false);
     }, (error) => {
@@ -40,28 +39,27 @@ export default function SOSAdminPanel() {
     return () => unsubscribe();
   }, []);
 
-  // 2. RESOLVE FUNCTION
   const markAsResolved = useCallback(async (alertId) => {
     try {
       const alertRef = doc(db, "alerts", alertId);
-      await updateDoc(alertRef, { 
-        status: "resolved", 
-        resolvedAt: new Date().toISOString() 
-      });
-    } catch (error) {
-      console.error("Error resolving alert:", error);
-    }
+      await updateDoc(alertRef, { status: "resolved", resolvedAt: new Date().toISOString() });
+    } catch (error) { console.error("Error resolving alert:", error); }
   }, []);
 
-  // 3. DELETE FUNCTION (With Confirmation)
   const deleteAlert = async (alertId) => {
     if (window.confirm("Are you sure you want to permanently delete this record?")) {
-      try {
-        await deleteDoc(doc(db, "alerts", alertId));
-      } catch (error) {
-        console.error("Delete Error:", error);
-      }
+      try { await deleteDoc(doc(db, "alerts", alertId)); } 
+      catch (error) { console.error("Delete Error:", error); }
     }
+  };
+
+  // 🔥 NAYA FUNCTION: WhatsApp par Live Tracking bhejna
+  const sendWhatsAppAlert = (alert) => {
+    const mapLink = `https://maps.google.com/?q=${alert.lat},${alert.lng}`;
+    const message = `🚨 *URGENT SOS EMERGENCY* 🚨\n\n*Name:* ${alert.userName || "Unknown"}\n*Phone:* ${alert.phone || "N/A"}\n\nUser is in danger. Please track the live location below immediately:\n📍 ${mapLink}`;
+    
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
   };
 
   const activeCount = alerts.filter(a => a.status === 'active').length;
@@ -87,21 +85,7 @@ export default function SOSAdminPanel() {
               <span className="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full animate-pulse">LIVE</span>
             )}
           </div>
-          <div className="flex items-center gap-3 p-4 text-slate-500 hover:text-slate-300 transition-colors cursor-not-allowed">
-            <Users className="w-5 h-5" />
-            <span className="font-semibold text-sm">Responders</span>
-          </div>
         </nav>
-
-        <div className="p-6 border-t border-slate-800/50">
-          <div className="bg-slate-900 rounded-2xl p-4 border border-slate-800">
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1">System Status</p>
-            <p className="text-xs font-bold text-emerald-400 flex items-center gap-2">
-              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></span>
-              Encrypted & Live
-            </p>
-          </div>
-        </div>
       </div>
 
       {/* MAIN CONTENT AREA */}
@@ -109,11 +93,8 @@ export default function SOSAdminPanel() {
         <header className="mb-10 flex justify-between items-end">
           <div>
             <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">SOS Admin Panel</h2>
-            <p className="text-slate-500 font-bold mt-2 flex items-center gap-2">
-              Command Center v2.0 <span className="text-slate-300">|</span> Real-time Emergency Tracking
-            </p>
+            <p className="text-slate-500 font-bold mt-2 flex items-center gap-2">Command Center v2.0 <span className="text-slate-300">|</span> Real-time Emergency Tracking</p>
           </div>
-          
           <div className="flex gap-4">
             <div className="bg-white border border-slate-200 px-6 py-4 rounded-3xl shadow-sm flex flex-col items-end">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Threats</span>
@@ -140,7 +121,6 @@ export default function SOSAdminPanel() {
                   : 'bg-slate-100/50 border-transparent grayscale-[0.5] opacity-80'
                 }`}
               >
-                {/* DELETE BUTTON */}
                 <button 
                   onClick={() => deleteAlert(alert.id)}
                   className="absolute top-6 right-6 p-2 text-slate-300 hover:text-red-600 hover:bg-red-50 transition-all rounded-xl"
@@ -160,15 +140,13 @@ export default function SOSAdminPanel() {
                     </h3>
                     <p className="text-[11px] font-bold text-slate-400 mt-2 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
-                      {alert.timestamp?.seconds 
-                        ? new Date(alert.timestamp.seconds * 1000).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit', day: '2-digit', month: 'short' }) 
-                        : "SYNCING..."}
+                      {alert.timestamp?.seconds ? new Date(alert.timestamp.seconds * 1000).toLocaleString() : "SYNCING..."}
                     </p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 mb-8">
-                  <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 group-hover:bg-white transition-colors">
+                <div className="grid grid-cols-1 gap-3 mb-6">
+                  <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
                     <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-100">
                       <MapPin className="w-4 h-4 text-red-600" />
                     </div>
@@ -179,33 +157,53 @@ export default function SOSAdminPanel() {
                       </p>
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 group-hover:bg-white transition-colors">
-                    <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-100">
-                      <Phone className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contact Hash</p>
-                      <p className="text-xs font-bold text-slate-700">{alert.phone || "UNREGISTERED"}</p>
-                    </div>
-                  </div>
                 </div>
 
                 {alert.status === 'active' ? (
-                  <div className="flex gap-3">
-                    <button 
-                      onClick={() => markAsResolved(alert.id)}
-                      className="flex-2 bg-slate-900 text-white py-4 rounded-2xl font-black text-xs tracking-widest hover:bg-red-600 transition-all shadow-lg active:scale-95"
-                    >
-                      MARK AS RESOLVED
-                    </button>
-                    <button 
-                      onClick={() => window.open(`https://maps.google.com/?q=${alert.lat},${alert.lng}`, '_blank')}
-                      className="flex-1 bg-white border-2 border-slate-900 text-slate-900 rounded-2xl flex items-center justify-center hover:bg-slate-50 transition-all active:scale-95"
-                    >
-                      <ExternalLink className="w-5 h-5" />
-                    </button>
-                  </div>
+                  <>
+                    {/* 🔥 HOT-LINKS SECTION (POLICE, AMBULANCE, FAMILY) */}
+                    <div className="flex justify-between gap-3 mb-6">
+                      <button 
+                        onClick={() => window.open('tel:100')} 
+                        className="flex-1 flex flex-col items-center justify-center py-3 bg-blue-50 text-blue-700 rounded-2xl hover:bg-blue-600 hover:text-white transition-all border border-blue-100 group/btn shadow-sm"
+                      >
+                        <Shield className="w-5 h-5 mb-1 group-hover/btn:scale-110 transition-transform" />
+                        <span className="text-[9px] font-black uppercase tracking-widest">Police</span>
+                      </button>
+
+                      <button 
+                        onClick={() => window.open('tel:108')} 
+                        className="flex-1 flex flex-col items-center justify-center py-3 bg-rose-50 text-rose-700 rounded-2xl hover:bg-rose-600 hover:text-white transition-all border border-rose-100 group/btn shadow-sm"
+                      >
+                        <Activity className="w-5 h-5 mb-1 group-hover/btn:scale-110 transition-transform" />
+                        <span className="text-[9px] font-black uppercase tracking-widest">Medical</span>
+                      </button>
+
+                      <button 
+                        onClick={() => sendWhatsAppAlert(alert)} 
+                        className="flex-1 flex flex-col items-center justify-center py-3 bg-emerald-50 text-emerald-700 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all border border-emerald-100 group/btn shadow-sm"
+                      >
+                        <MessageCircle className="w-5 h-5 mb-1 group-hover/btn:scale-110 transition-transform" />
+                        <span className="text-[9px] font-black uppercase tracking-widest">Family</span>
+                      </button>
+                    </div>
+
+                    {/* ACTIONS */}
+                    <div className="flex gap-3">
+                      <button 
+                        onClick={() => markAsResolved(alert.id)}
+                        className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black text-xs tracking-widest hover:bg-red-600 transition-all shadow-lg active:scale-95"
+                      >
+                        MARK AS RESOLVED
+                      </button>
+                      <button 
+                        onClick={() => window.open(`https://maps.google.com/?q=${alert.lat},${alert.lng}`, '_blank')}
+                        className="w-16 bg-white border-2 border-slate-900 text-slate-900 rounded-2xl flex items-center justify-center hover:bg-slate-50 transition-all active:scale-95"
+                      >
+                        <ExternalLink className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </>
                 ) : (
                   <div className="w-full bg-emerald-50 text-emerald-600 py-4 rounded-2xl font-black text-xs tracking-widest text-center border border-emerald-100 uppercase">
                     Situation Resolved
