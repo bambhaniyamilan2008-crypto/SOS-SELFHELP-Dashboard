@@ -1,6 +1,6 @@
-// src/firebaseConfig.js
-import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { initializeApp, getApps, getApp } from "firebase/app";
+// 🔥 Naye imports jo database ko fast banayenge
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCbYasoah0sZbOnMa7kE4dSMyAId7i0oM0",
@@ -11,5 +11,12 @@ const firebaseConfig = {
   appId: "1:629905965135:web:3e9cac98d33baf4ca7aa3a"
 };
 
-const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
+// Singleton Pattern: Next.js mein multiple connections rokne ke liye
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+
+// 🔥 GOD MODE FIX: Isse bina refresh kiye data makkhan ki tarah chalega
+export const db = initializeFirestore(app, { 
+  localCache: persistentLocalCache({ 
+    tabManager: persistentMultipleTabManager() 
+  })
+});
