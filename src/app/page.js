@@ -134,7 +134,7 @@ export default function SOSAdminPanel() {
             {alerts.map((alert) => (
               <div 
                 key={alert.id} 
-                className={`group relative p-8 rounded-[2.5rem] border-2 transition-all duration-500 hover:translate-y-[-4px] ${
+                className={`group relative p-8 rounded-[2.5rem] border-2 transition-all duration-500 hover:-translate-y-1 ${
                   alert.status === 'active' 
                   ? 'bg-white border-red-600 shadow-[0_20px_50px_rgba(220,38,38,0.1)]' 
                   : 'bg-slate-100/50 border-transparent grayscale-[0.5] opacity-80'
@@ -195,7 +195,7 @@ export default function SOSAdminPanel() {
                   <div className="flex gap-3">
                     <button 
                       onClick={() => markAsResolved(alert.id)}
-                      className="flex-[2] bg-slate-900 text-white py-4 rounded-2xl font-black text-xs tracking-widest hover:bg-red-600 transition-all shadow-lg active:scale-95"
+                      className="flex-2 bg-slate-900 text-white py-4 rounded-2xl font-black text-xs tracking-widest hover:bg-red-600 transition-all shadow-lg active:scale-95"
                     >
                       MARK AS RESOLVED
                     </button>
