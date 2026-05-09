@@ -158,7 +158,7 @@ export default function Dashboard() {
                   <div className="flex gap-3">
                     <button 
                       onClick={() => markAsResolved(alert.id)}
-                      className="flex-1 bg-red-600 hover:bg-black text-white py-4 rounded-2xl font-black transition-all transform hover:translate-y-[-2px] active:scale-95 shadow-xl shadow-red-100">
+                      className="flex-1 bg-red-600 hover:bg-black text-white py-4 rounded-2xl font-black transition-all transform hover:translate-y-0.5 active:scale-95 shadow-xl shadow-red-100">
                       RESOLVE NOW
                     </button>
                     <button 
