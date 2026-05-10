@@ -1,12 +1,12 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  AlertCircle, CheckCircle, MapPin, Phone, 
+  AlertCircle, MapPin, Phone, 
   ShieldAlert, Users, Clock, Trash2, ExternalLink,
   Shield, Activity, MessageCircle
 } from 'lucide-react';
 
-// FIREBASE IMPORTS 
+// FIREBASE IMPORTS
 import { 
   collection, query, onSnapshot, doc, 
   updateDoc, deleteDoc, orderBy, limit 
