@@ -1,8 +1,8 @@
 "use client";
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   AlertCircle, MapPin, ShieldAlert, Clock, Trash2, 
-  Activity, Smartphone, Send, Navigation, Info
+  Activity, Smartphone, Send, Navigation
 } from 'lucide-react';
 import { 
   collection, query, onSnapshot, doc, 
@@ -17,7 +17,6 @@ export default function BroadcastNotification() {
   const [pushMessage, setPushMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
 
-  // 📡 REAL-TIME SYNC WITH FIREBASE
   useEffect(() => {
     const q = query(collection(db, "alerts"), orderBy("timestamp", "desc"), limit(50));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -27,10 +26,9 @@ export default function BroadcastNotification() {
     return () => unsubscribe();
   }, []);
 
-  // 🚀 PUSH NOTIFICATION ENGINE
   const handleSendPushNotification = async () => {
     if (!pushTitle || !pushMessage) {
-      alert("Bhai, Title aur Message dono bharna zaroori hai!");
+      alert("Error: Please enter both Title and Message content!");
       return;
     }
     setIsSending(true);
@@ -42,7 +40,7 @@ export default function BroadcastNotification() {
       });
 
       if (tokens.length === 0) {
-        alert("Database mein koi Push Token nahi mila!");
+        alert("System Error: No registered device tokens found in database!");
         setIsSending(false); return;
       }
 
@@ -58,10 +56,10 @@ export default function BroadcastNotification() {
         }),
       });
 
-      alert(`✅ Success! ${tokens.length} phones par notification bhej diya.`);
+      alert(`✅ Dispatch Successful! Sent to ${tokens.length} devices.`);
       setPushTitle(""); setPushMessage("");
     } catch (e) {
-      alert("Error: Notification nahi gayi.");
+      alert("Critical Error: Broadcast transmission failed.");
     }
     setIsSending(false);
   };
@@ -69,77 +67,75 @@ export default function BroadcastNotification() {
   const activeCount = alerts.filter(a => a.status === 'active').length;
 
   return (
-    <div className="min-h-screen bg-[#f1f5f9] flex flex-col font-sans text-slate-900">
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col font-sans text-slate-900">
       
-      {/* 🟢 SECTION 1: HEADER & LIVE STATUS */}
-      <div className="bg-white border-b-2 border-slate-200 p-6 sticky top-0 z-50 shadow-md">
+      {/* 🟢 HEADER: REAL-TIME STATUS */}
+      <div className="bg-white border-b border-slate-200 p-6 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="flex items-center gap-4">
-            <div className="bg-red-600 p-3 rounded-2xl shadow-lg shadow-red-200">
+            <div className="bg-red-600 p-3 rounded-2xl shadow-lg">
               <ShieldAlert className="w-8 h-8 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-black italic uppercase tracking-tighter">SafeHelp Command</h1>
-              <div className="flex items-center gap-2 text-slate-400">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-[10px] font-black uppercase tracking-widest">Global Monitor Active</span>
+              <h1 className="text-3xl font-black uppercase tracking-tighter italic">SafeHelp Command</h1>
+              <div className="flex items-center gap-2 text-emerald-500">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                <span className="text-[10px] font-bold uppercase tracking-widest">Encrypted Monitor Active</span>
               </div>
             </div>
           </div>
           
-          <div className="flex gap-4">
-             <div className="bg-slate-900 px-6 py-3 rounded-2xl flex flex-col items-end justify-center">
-                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-right">Emergency Alerts</span>
-                <span className={`text-2xl font-black ${activeCount > 0 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
-                  {activeCount.toString().padStart(2, '0')}
-                </span>
-             </div>
+          <div className="bg-slate-900 px-8 py-3 rounded-2xl flex flex-col items-end border-r-4 border-red-600">
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Active SOS Requests</span>
+            <span className={`text-2xl font-black ${activeCount > 0 ? 'text-red-500 animate-pulse' : 'text-white'}`}>
+              {activeCount.toString().padStart(2, '0')}
+            </span>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto w-full p-6 md:p-10 flex flex-col gap-12">
+      <div className="max-w-7xl mx-auto w-full p-6 md:p-10 flex flex-col gap-16">
         
-        {/* 🚨 SECTION 2: LIVE EMERGENCY MONITOR (YE AB UPAR HAI) */}
-        <section className="space-y-6">
-          <div className="flex items-center justify-between">
+        {/* 🚨 SECTION 1: LIVE EMERGENCY MONITOR (ALWAYS ON TOP) */}
+        <section className="space-y-8">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-4">
             <div className="flex items-center gap-3">
                <Activity className="w-6 h-6 text-red-600" />
-               <h2 className="text-2xl font-black uppercase italic">Live Emergency Feed</h2>
+               <h2 className="text-2xl font-black uppercase italic tracking-tight">Live Emergency Feed</h2>
             </div>
-            <div className="text-[10px] font-bold text-slate-400 uppercase bg-white px-4 py-1 rounded-full border">
-              Real-time Sync Enabled
-            </div>
+            <span className="text-[10px] font-black text-slate-400 uppercase bg-slate-100 px-4 py-2 rounded-lg">
+              Auto-Refresh Enabled
+            </span>
           </div>
 
           {loading ? (
             <div className="py-20 text-center flex flex-col items-center gap-4">
                <div className="w-12 h-12 border-4 border-slate-200 border-t-red-600 rounded-full animate-spin"></div>
-               <p className="font-black text-slate-400 uppercase tracking-widest text-xs">Accessing Secure Database...</p>
+               <p className="font-black text-slate-400 uppercase tracking-widest text-xs">Fetching Secure Stream...</p>
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
               {alerts.length === 0 && (
-                <div className="col-span-full bg-white p-10 rounded-[2.5rem] text-center border-2 border-dashed border-slate-200">
-                   <p className="font-bold text-slate-400 uppercase tracking-widest italic">No emergency alerts found in database</p>
+                <div className="col-span-full bg-white p-16 rounded-[3rem] text-center border-4 border-dashed border-slate-100">
+                   <p className="font-black text-slate-300 uppercase tracking-widest text-sm">No Active Emergency Signals Detected</p>
                 </div>
               )}
               {alerts.map((alert) => (
-                <div key={alert.id} className={`p-8 rounded-[2.5rem] border-2 transition-all duration-300 transform ${alert.status === 'active' ? 'bg-white border-red-600 shadow-2xl scale-100' : 'bg-slate-200/50 border-transparent opacity-60 scale-95 grayscale'}`}>
+                <div key={alert.id} className={`group p-8 rounded-[2.5rem] border-2 transition-all duration-500 ${alert.status === 'active' ? 'bg-white border-red-600 shadow-[0_25px_50px_-12px_rgba(220,38,38,0.25)]' : 'bg-slate-50 border-transparent opacity-60 grayscale scale-95'}`}>
                    <div className="flex justify-between items-start mb-6">
-                      <div className={`p-4 rounded-3xl ${alert.status === 'active' ? 'bg-red-600 text-white animate-pulse' : 'bg-slate-400 text-slate-100'}`}>
+                      <div className={`p-4 rounded-3xl transition-transform group-hover:scale-110 ${alert.status === 'active' ? 'bg-red-600 text-white animate-pulse' : 'bg-slate-400 text-slate-100'}`}>
                         <AlertCircle className="w-7 h-7" />
                       </div>
-                      <button onClick={() => deleteDoc(doc(db, "alerts", alert.id))} className="text-slate-300 hover:text-red-600 transition-colors">
+                      <button onClick={() => deleteDoc(doc(db, "alerts", alert.id))} className="text-slate-300 hover:text-red-600 p-2 transition-colors">
                         <Trash2 className="w-5 h-5" />
                       </button>
                    </div>
                    
-                   <h3 className="text-xl font-black uppercase italic truncate">{alert.userName || "SECURE USER"}</h3>
-                   <div className="flex items-center gap-2 text-slate-400 mb-6">
+                   <h3 className="text-xl font-black uppercase italic truncate text-slate-900">{alert.userName || "ANONYMOUS USER"}</h3>
+                   <div className="flex items-center gap-2 text-slate-400 mb-8 border-b border-slate-100 pb-2">
                       <Clock className="w-3 h-3" />
                       <span className="text-[10px] font-bold uppercase tracking-widest">
-                        {alert.timestamp?.seconds ? new Date(alert.timestamp.seconds * 1000).toLocaleTimeString() : "Pending"}
+                        {alert.timestamp?.seconds ? new Date(alert.timestamp.seconds * 1000).toLocaleString() : "Syncing Time..."}
                       </span>
                    </div>
 
@@ -147,20 +143,20 @@ export default function BroadcastNotification() {
                      <div className="space-y-3">
                         <button 
                           onClick={() => window.open(`https://www.google.com/maps?q=${alert.lat},${alert.lng}`, '_blank')}
-                          className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-red-600 transition-all shadow-lg active:scale-95"
+                          className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs tracking-widest flex items-center justify-center gap-2 hover:bg-red-600 transition-all shadow-lg"
                         >
-                          <Navigation className="w-4 h-4" /> TRACK LIVE LOCATION
+                          <Navigation className="w-4 h-4" /> INITIATE TRACKING
                         </button>
                         <button 
                           onClick={() => updateDoc(doc(db, "alerts", alert.id), { status: "resolved" })}
-                          className="w-full py-4 border-2 border-slate-900 rounded-2xl font-black text-xs tracking-widest hover:bg-slate-900 hover:text-white transition-all active:scale-95"
+                          className="w-full py-4 border-2 border-slate-900 rounded-2xl font-black text-xs tracking-widest hover:bg-slate-900 hover:text-white transition-all"
                         >
-                          MARK RESOLVED
+                          RESOLVE INCIDENT
                         </button>
                      </div>
                    ) : (
-                     <div className="py-4 bg-emerald-50 text-emerald-600 rounded-2xl font-black text-xs text-center border border-emerald-100 uppercase tracking-widest">
-                        Situation Secured
+                     <div className="py-4 bg-emerald-50 text-emerald-600 rounded-2xl font-black text-xs text-center border border-emerald-100 uppercase tracking-widest italic">
+                        Incident Resolved
                      </div>
                    )}
                 </div>
@@ -169,57 +165,56 @@ export default function BroadcastNotification() {
           )}
         </section>
 
-        {/* 🔵 SECTION 3: GLOBAL BROADCAST COMMAND (YE AB NICHE HAI) */}
-        <section className="bg-white border-2 border-blue-500/10 p-8 md:p-12 rounded-[3rem] shadow-2xl relative overflow-hidden">
+        {/* 🔵 SECTION 2: GLOBAL DISPATCH COMMAND (FIXED TO BOTTOM) */}
+        <section className="bg-slate-900 p-10 md:p-14 rounded-[4rem] shadow-2xl relative overflow-hidden border-b-8 border-blue-600">
            <div className="relative z-10">
-              <div className="flex items-center gap-4 mb-8">
-                <div className="bg-blue-600 p-4 rounded-2xl text-white shadow-xl shadow-blue-200">
-                  <Smartphone className="w-8 h-8" />
+              <div className="flex items-center gap-5 mb-10">
+                <div className="bg-blue-600 p-5 rounded-3xl text-white shadow-2xl shadow-blue-500/40">
+                  <Smartphone className="w-10 h-10" />
                 </div>
                 <div>
-                  <h3 className="text-2xl font-black text-slate-900 uppercase italic">Global Broadcast</h3>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Send critical notification to all phones</p>
+                  <h3 className="text-3xl font-black text-white uppercase italic tracking-tighter">Global Broadcast Dispatch</h3>
+                  <p className="text-xs font-bold text-blue-400 uppercase tracking-widest">Authorized system-wide notification portal</p>
                 </div>
               </div>
 
-              <div className="flex flex-col lg:flex-row gap-6 items-end">
+              <div className="flex flex-col lg:flex-row gap-8 items-end">
                 <div className="flex-1 w-full space-y-3">
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-2">Alert Heading</label>
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-3">Notification Headline</label>
                   <input 
-                    type="text" placeholder="🚨 AREA EMERGENCY WARNING" value={pushTitle}
+                    type="text" placeholder="E.g. SEVERE WEATHER ALERT" value={pushTitle}
                     onChange={(e) => setPushTitle(e.target.value)}
-                    className="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl font-bold focus:border-blue-600 outline-none transition-all shadow-inner"
+                    className="w-full bg-slate-800 border-2 border-slate-700 px-6 py-5 rounded-[2rem] font-bold text-white placeholder:text-slate-600 focus:border-blue-600 outline-none transition-all"
                   />
                 </div>
                 <div className="flex-[2] w-full space-y-3">
-                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-2">Message Content</label>
+                  <label className="text-[10px] font-black uppercase text-slate-500 tracking-widest ml-3">Detailed Message Content</label>
                   <input 
-                    type="text" placeholder="Explain the situation or provide instructions..." value={pushMessage}
+                    type="text" placeholder="Explain the emergency or safety instructions clearly..." value={pushMessage}
                     onChange={(e) => setPushMessage(e.target.value)}
-                    className="w-full bg-slate-50 border-2 border-slate-100 px-6 py-4 rounded-2xl font-bold focus:border-blue-600 outline-none transition-all shadow-inner"
+                    className="w-full bg-slate-800 border-2 border-slate-700 px-6 py-5 rounded-[2rem] font-bold text-white placeholder:text-slate-600 focus:border-blue-600 outline-none transition-all"
                   />
                 </div>
                 <button 
                   onClick={handleSendPushNotification} disabled={isSending}
-                  className="w-full lg:w-auto px-12 h-16 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-xs tracking-widest flex items-center justify-center gap-3 transition-all shadow-2xl shadow-blue-300 active:scale-95 disabled:opacity-50"
+                  className="w-full lg:w-auto px-14 h-20 bg-blue-600 hover:bg-blue-700 text-white rounded-[2rem] font-black text-sm tracking-widest flex items-center justify-center gap-4 transition-all shadow-3xl active:scale-95 disabled:opacity-50"
                 >
-                  {isSending ? "FIRE..." : "SEND BROADCAST"}
-                  {!isSending && <Send className="w-5 h-5" />}
+                  {isSending ? "DISPATCHING..." : "EXECUTE BROADCAST"}
+                  {!isSending && <Send className="w-6 h-6" />}
                 </button>
               </div>
            </div>
            
-           {/* Abstract Background element */}
-           <div className="absolute top-0 right-0 -translate-y-12 translate-x-12 opacity-5 pointer-events-none">
-              <Smartphone className="w-64 h-64 text-blue-600" />
+           {/* Futuristic Background Decoration */}
+           <div className="absolute -bottom-20 -right-20 opacity-10 pointer-events-none rotate-12">
+              <ShieldAlert className="w-96 h-96 text-white" />
            </div>
         </section>
 
       </div>
       
-      {/* ⚪ FOOTER SYSTEM INFO */}
-      <footer className="p-8 text-center border-t border-slate-200 mt-auto">
-         <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.5em]">SafeHelp Security Protocol v2.4.0</p>
+      <footer className="p-10 text-center bg-white mt-10 border-t border-slate-200">
+         <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.8em]">Security Infrastructure Control v2.4.0</p>
       </footer>
     </div>
   );
