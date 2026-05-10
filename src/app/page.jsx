@@ -71,7 +71,7 @@ export default function SOSAdminPanel() {
           <div className="bg-red-600 p-2 rounded-lg shadow-lg shadow-red-900/20">
             <ShieldAlert className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-xl font-black tracking-tight uppercase italic">SafeHelp OS</h1>
+          <h1 className="text-xl font-black tracking-tight uppercase italic">SafeHelp Admin</h1>
         </div>
         
         <nav className="flex-1 p-6 space-y-3">
