@@ -1,8 +1,7 @@
 "use client";
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  AlertCircle, CheckCircle, MapPin, Phone, 
-  ShieldAlert, Users, Clock, Trash2, ExternalLink,
+  AlertCircle, MapPin, ShieldAlert, Clock, Trash2, ExternalLink,
   Shield, Activity, MessageCircle
 } from 'lucide-react';
 
@@ -65,50 +64,50 @@ export default function SOSAdminPanel() {
 
   return (
     <div key={alerts.length} className="min-h-screen bg-[#f8fafc] flex font-sans antialiased text-slate-900">
-      {/* SIDEBAR */}
-      <div className="w-72 bg-slate-950 text-white flex flex-col fixed h-full shadow-2xl z-50">
+      
+      {/* 🟢 SIDEBAR: Fixed Control Center */}
+      <aside className="w-72 bg-slate-950 text-white flex flex-col fixed h-full shadow-2xl z-50">
         <div className="p-8 flex items-center gap-4 border-b border-slate-800/50">
           <div className="bg-red-600 p-2 rounded-lg shadow-lg shadow-red-900/20">
             <ShieldAlert className="w-6 h-6 text-white" />
           </div>
-          <h1 className="text-xl font-black tracking-tight uppercase italic">SOS Admin</h1>
+          <h1 className="text-xl font-black tracking-tight uppercase italic">SafeHelp OS</h1>
         </div>
         
         <nav className="flex-1 p-6 space-y-3">
-          <div className="flex items-center justify-between p-4 bg-red-600/10 border border-red-600/20 text-red-500 rounded-2xl font-bold transition-all">
+          <div className="w-full flex items-center justify-between p-4 rounded-2xl font-bold transition-all bg-red-600 text-white shadow-lg shadow-red-900/20">
             <div className="flex items-center gap-3">
-              <AlertCircle className="w-5 h-5" />
+              <Activity className="w-5 h-5" />
               <span>Live Monitor</span>
             </div>
             {activeCount > 0 && (
-              <span className="bg-red-600 text-white text-[10px] px-2 py-0.5 rounded-full animate-pulse">LIVE</span>
+              <span className="bg-white text-red-600 text-[10px] px-2 py-0.5 rounded-full font-black animate-pulse text-xs">LIVE</span>
             )}
           </div>
         </nav>
-      </div>
+      </aside>
 
-      {/* MAIN CONTENT AREA */}
-      <div className="flex-1 p-10 ml-72">
-        <header className="mb-8 flex justify-between items-end">
+      {/* 🔵 MAIN CONTENT AREA */}
+      <main className="flex-1 ml-72 p-12">
+        <header className="mb-12 flex justify-between items-end border-b border-slate-200 pb-8">
           <div>
-            <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">SOS Admin Panel</h2>
-            <p className="text-slate-500 font-bold mt-2 flex items-center gap-2">Command Center v2.0 <span className="text-slate-300">|</span> Real-time Emergency Tracking</p>
+            <h2 className="text-4xl font-black uppercase italic tracking-tighter">Emergency Monitor</h2>
+            <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.2em] mt-2 flex items-center gap-2">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div> Active Surveillance Feed
+            </p>
           </div>
-          <div className="flex gap-4">
-            <div className="bg-white border border-slate-200 px-6 py-4 rounded-3xl shadow-sm flex flex-col items-end">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Threats</span>
-              <span className={`text-2xl font-black ${activeCount > 0 ? 'text-red-600' : 'text-slate-900'}`}>
-                {activeCount.toString().padStart(2, '0')}
-              </span>
-            </div>
+          <div className="bg-white border-2 border-slate-100 px-8 py-4 rounded-3xl shadow-sm flex flex-col items-end">
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Threats</span>
+            <span className={`text-2xl font-black ${activeCount > 0 ? 'text-red-600 animate-pulse' : 'text-slate-900'}`}>
+              {activeCount.toString().padStart(2, '0')}
+            </span>
           </div>
         </header>
 
         {/* ALERTS GRID */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center h-[40vh] gap-4">
-            <div className="w-10 h-10 border-4 border-slate-200 border-t-red-600 rounded-full animate-spin"></div>
-            <p className="text-slate-400 font-black text-xs uppercase tracking-widest">Accessing Secure Database...</p>
+          <div className="flex justify-center py-20 font-black text-slate-300 animate-pulse uppercase tracking-[0.5em]">
+            Initializing Secure Stream...
           </div>
         ) : (
           <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
@@ -117,8 +116,8 @@ export default function SOSAdminPanel() {
                 key={alert.id} 
                 className={`group relative p-8 rounded-[2.5rem] border-2 transition-all duration-500 hover:-translate-y-1 ${
                   alert.status === 'active' 
-                  ? 'bg-white border-red-600 shadow-[0_20px_50px_rgba(220,38,38,0.1)]' 
-                  : 'bg-slate-100/50 border-transparent grayscale-[0.5] opacity-80'
+                  ? 'bg-white border-red-600 shadow-2xl scale-100' 
+                  : 'bg-slate-100/50 border-transparent grayscale-[0.5] opacity-80 scale-95'
                 }`}
               >
                 <button 
@@ -135,10 +134,10 @@ export default function SOSAdminPanel() {
                     <ShieldAlert className="w-7 h-7" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-slate-900 leading-none tracking-tight">
+                    <h3 className="text-xl font-black text-slate-900 leading-none tracking-tight uppercase italic truncate">
                       {alert.userName || "SECURE USER"}
                     </h3>
-                    <p className="text-[11px] font-bold text-slate-400 mt-2 flex items-center gap-1">
+                    <p className="text-[11px] font-bold text-slate-400 mt-2 flex items-center gap-1 uppercase tracking-widest">
                       <Clock className="w-3 h-3" />
                       {alert.timestamp?.seconds ? new Date(alert.timestamp.seconds * 1000).toLocaleString() : "SYNCING..."}
                     </p>
@@ -205,7 +204,7 @@ export default function SOSAdminPanel() {
                     </div>
                   </>
                 ) : (
-                  <div className="w-full bg-emerald-50 text-emerald-600 py-4 rounded-2xl font-black text-xs tracking-widest text-center border border-emerald-100 uppercase">
+                  <div className="w-full bg-emerald-50 text-emerald-600 py-4 rounded-2xl font-black text-xs tracking-widest text-center border border-emerald-100 uppercase italic">
                     Situation Resolved
                   </div>
                 )}
@@ -213,7 +212,7 @@ export default function SOSAdminPanel() {
             ))}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }
