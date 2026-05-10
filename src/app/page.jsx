@@ -3,25 +3,19 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { 
   AlertCircle, CheckCircle, MapPin, Phone, 
   ShieldAlert, Users, Clock, Trash2, ExternalLink,
-  Shield, Activity, MessageCircle,
-  Smartphone, Send // 🔥 Push notification ke naye icons
+  Shield, Activity, MessageCircle
 } from 'lucide-react';
 
-// FIREBASE IMPORTS (getDocs add kiya hai push notification ke liye)
+// FIREBASE IMPORTS 
 import { 
   collection, query, onSnapshot, doc, 
-  updateDoc, deleteDoc, orderBy, limit, getDocs 
+  updateDoc, deleteDoc, orderBy, limit 
 } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 
 export default function SOSAdminPanel() {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
-  
-  // 🔥 Push Notification State
-  const [pushTitle, setPushTitle] = useState("");
-  const [pushMessage, setPushMessage] = useState("");
-  const [isSending, setIsSending] = useState(false);
 
   // 1. HIGH-ACCURACY REAL-TIME LISTENER
   useEffect(() => {
@@ -60,67 +54,11 @@ export default function SOSAdminPanel() {
   };
 
   const sendWhatsAppAlert = (alert) => {
-    const mapLink = `https://maps.google.com/?q=${alert.lat},${alert.lng}`;
+    const mapLink = `http://googleusercontent.com/maps.google.com/${alert.lat},${alert.lng}`;
     const message = `🚨 *URGENT SOS EMERGENCY* 🚨\n\n*Name:* ${alert.userName || "Unknown"}\n*Phone:* ${alert.phone || "N/A"}\n\nUser is in danger. Please track the live location below immediately:\n📍 ${mapLink}`;
     
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
-  };
-
-  // 🔥 NAYA FUNCTION: Push Notification Bhejne ke liye
-  const handleSendPushNotification = async () => {
-    if (!pushTitle || !pushMessage) {
-      alert("⚠️ Bhai, Title aur Message dono likho!");
-      return;
-    }
-
-    setIsSending(true);
-    try {
-      // 1. Firebase se users ke token nikalo
-      const usersSnapshot = await getDocs(collection(db, "users"));
-      let expoPushTokens = [];
-
-      usersSnapshot.forEach((doc) => {
-        const userData = doc.data();
-        if (userData.expoPushToken) {
-          expoPushTokens.push(userData.expoPushToken);
-        }
-      });
-
-      if (expoPushTokens.length === 0) {
-        alert("❌ Database mein kisi user ka Push Token nahi mila! (Pehle mobile app mein setup karna hoga)");
-        setIsSending(false);
-        return;
-      }
-
-      // 2. Expo API Data Format
-      const pushData = {
-        to: expoPushTokens, 
-        sound: "default",
-        title: pushTitle,
-        body: pushMessage,
-        data: { screen: "Home" }, 
-      };
-
-      // 3. Fire to Expo Servers
-      await fetch("https://exp.host/--/api/v2/push/send", {
-        method: "POST",
-        headers: {
-          Accept: "application/json",
-          "Accept-encoding": "gzip, deflate",
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(pushData),
-      });
-
-      alert(`✅ SUCCESS! Notification sent to ${expoPushTokens.length} devices.`);
-      setPushTitle("");
-      setPushMessage("");
-    } catch (error) {
-      console.error(error);
-      alert("❌ Notification bhejne mein error aayi.");
-    }
-    setIsSending(false);
   };
 
   const activeCount = alerts.filter(a => a.status === 'active').length;
@@ -165,45 +103,6 @@ export default function SOSAdminPanel() {
             </div>
           </div>
         </header>
-
-        {/* 🔥 NAYA: GLOBAL PUSH NOTIFICATION COMMAND BOX */}
-        <div className="mb-10 bg-white border border-slate-200 p-6 rounded-[2.5rem] shadow-sm flex flex-col xl:flex-row gap-6 items-center">
-          <div className="flex items-center gap-4 xl:w-1/4 w-full">
-            <div className="bg-blue-100 p-4 rounded-2xl">
-              <Smartphone className="w-8 h-8 text-blue-600" />
-            </div>
-            <div>
-              <h3 className="font-black text-slate-900 uppercase tracking-tight">Global Push Alert</h3>
-              <p className="text-xs font-bold text-slate-400">Send message to all apps</p>
-            </div>
-          </div>
-          
-          <div className="flex-1 flex flex-col md:flex-row gap-4 w-full">
-            <input 
-              type="text" 
-              placeholder="Alert Title (e.g., Area Warning)" 
-              value={pushTitle}
-              onChange={(e) => setPushTitle(e.target.value)}
-              className="flex-1 bg-slate-50 border border-slate-200 px-4 py-3 rounded-2xl text-sm font-bold focus:outline-none focus:border-blue-500 transition-all"
-            />
-            <input 
-              type="text" 
-              placeholder="Write your message here..." 
-              value={pushMessage}
-              onChange={(e) => setPushMessage(e.target.value)}
-              className="flex-[2] bg-slate-50 border border-slate-200 px-4 py-3 rounded-2xl text-sm font-bold focus:outline-none focus:border-blue-500 transition-all"
-            />
-          </div>
-
-          <button 
-            onClick={handleSendPushNotification}
-            disabled={isSending}
-            className="w-full xl:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-xs tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-600/20 active:scale-95 disabled:opacity-70"
-          >
-            {isSending ? "SENDING..." : "FIRE ALERT"}
-            {!isSending && <Send className="w-4 h-4" />}
-          </button>
-        </div>
 
         {/* ALERTS GRID */}
         {loading ? (
@@ -298,7 +197,7 @@ export default function SOSAdminPanel() {
                         MARK AS RESOLVED
                       </button>
                       <button 
-                        onClick={() => window.open(`https://maps.google.com/?q=${alert.lat},${alert.lng}`, '_blank')}
+                        onClick={() => window.open(`http://googleusercontent.com/maps.google.com/${alert.lat},${alert.lng}`, '_blank')}
                         className="w-16 bg-white border-2 border-slate-900 text-slate-900 rounded-2xl flex items-center justify-center hover:bg-slate-50 transition-all active:scale-95"
                       >
                         <ExternalLink className="w-5 h-5" />
