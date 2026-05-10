@@ -48,6 +48,14 @@ export default function SOSAdminPanel() {
     if (window.confirm("Permanently delete this alert record?")) await deleteDoc(doc(db, "alerts", alertId));
   };
 
+  const sendWhatsAppAlert = (alert) => {
+    const mapLink = `https://maps.google.com/?q=${alert.lat},${alert.lng}`;
+    const message = `🚨 *URGENT SOS EMERGENCY* 🚨\n\n*Name:* ${alert.userName || "Unknown"}\n*Phone:* ${alert.phone || "N/A"}\n\nUser is in danger. Please track the live location below immediately:\n📍 ${mapLink}`;
+    
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(whatsappUrl, '_blank');
+  };
+
   // ==========================================
   // 🚀 FUNCTION: SEND PUSH NOTIFICATION
   // ==========================================
@@ -117,11 +125,11 @@ export default function SOSAdminPanel() {
             <Smartphone className="w-5 h-5" /><span>Push Broadcast</span>
           </button>
 
-          {/* TAB 3: USER MANAGEMENT (Fixed!) */}
+          {/* TAB 3: USER MANAGEMENT */}
           <button 
             onClick={() => {
               setActiveTab("users");
-              fetchAllUsers(); // ✅ Data button click par fetch hoga, error khatam!
+              fetchAllUsers(); 
             }} 
             className={`w-full flex items-center gap-3 p-4 rounded-2xl font-bold transition-all ${activeTab === "users" ? "bg-purple-600 text-white shadow-lg" : "text-slate-400 hover:bg-slate-900"}`}
           >
@@ -162,14 +170,46 @@ export default function SOSAdminPanel() {
                     <h3 className="text-xl font-black uppercase truncate">{alert.userName || "SECURE USER"}</h3>
                     <p className="text-[11px] font-bold text-slate-400 mb-6 uppercase"><Clock className="w-3 h-3 inline mr-1" />{alert.timestamp?.seconds ? new Date(alert.timestamp.seconds * 1000).toLocaleString() : "Pending"}</p>
                     
-                    {alert.status === 'active' ? (
-                      <div className="space-y-4">
-                        <button onClick={() => window.open(`http://googleusercontent.com/maps.google.com/${alert.lat},${alert.lng}`, '_blank')} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-red-600 transition-all shadow-lg">TRACK LOCATION</button>
-                        <div className="flex gap-2">
-                           <button onClick={() => markAsResolved(alert.id)} className="flex-1 py-4 border-2 border-slate-900 rounded-2xl font-black text-[10px] hover:bg-slate-900 hover:text-white transition-all">RESOLVE</button>
-                           <button onClick={() => window.open(`https://wa.me/?text=🚨SOS: ${alert.userName} location: http://googleusercontent.com/maps.google.com/${alert.lat},${alert.lng}`, '_blank')} className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center border border-emerald-100 hover:bg-emerald-600 hover:text-white transition-all"><MessageCircle className="w-6 h-6" /></button>
-                        </div>
+                    <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6">
+                      <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-100">
+                        <MapPin className="w-4 h-4 text-red-600" />
                       </div>
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Live Coordinates</p>
+                        <p className="text-xs font-bold text-slate-700">
+                          {alert.lat && alert.lng ? `${alert.lat.toFixed(4)}° N, ${alert.lng.toFixed(4)}° E` : "SIGNAL WEAK"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {alert.status === 'active' ? (
+                      <>
+                        {/* 🔥 HOT-LINKS SECTION WAPAS AA GAYA */}
+                        <div className="flex justify-between gap-3 mb-6">
+                          <button onClick={() => window.open('tel:100')} className="flex-1 flex flex-col items-center justify-center py-3 bg-blue-50 text-blue-700 rounded-2xl hover:bg-blue-600 hover:text-white transition-all border border-blue-100 shadow-sm">
+                            <Shield className="w-5 h-5 mb-1" />
+                            <span className="text-[9px] font-black uppercase tracking-widest">Police</span>
+                          </button>
+
+                          <button onClick={() => window.open('tel:108')} className="flex-1 flex flex-col items-center justify-center py-3 bg-rose-50 text-rose-700 rounded-2xl hover:bg-rose-600 hover:text-white transition-all border border-rose-100 shadow-sm">
+                            <Activity className="w-5 h-5 mb-1" />
+                            <span className="text-[9px] font-black uppercase tracking-widest">Medical</span>
+                          </button>
+
+                          <button onClick={() => sendWhatsAppAlert(alert)} className="flex-1 flex flex-col items-center justify-center py-3 bg-emerald-50 text-emerald-700 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all border border-emerald-100 shadow-sm">
+                            <MessageCircle className="w-5 h-5 mb-1" />
+                            <span className="text-[9px] font-black uppercase tracking-widest">Family</span>
+                          </button>
+                        </div>
+
+                        {/* ACTIONS */}
+                        <div className="flex gap-3">
+                          <button onClick={() => markAsResolved(alert.id)} className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black text-xs hover:bg-red-600 transition-all shadow-lg">MARK AS RESOLVED</button>
+                          <button onClick={() => window.open(`https://maps.google.com/?q=${alert.lat},${alert.lng}`, '_blank')} className="w-16 bg-white border-2 border-slate-900 text-slate-900 rounded-2xl flex items-center justify-center hover:bg-slate-50 transition-all">
+                            <ExternalLink className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </>
                     ) : (
                       <div className="py-4 bg-emerald-50 text-emerald-600 rounded-2xl font-black text-xs text-center border border-emerald-100 uppercase italic">Situation Resolved</div>
                     )}
