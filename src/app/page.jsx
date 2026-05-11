@@ -58,7 +58,7 @@ export default function SOSAdminPanel() {
   };
 
   // ==========================================
-  // 🚀 FUNCTION: SEND PUSH NOTIFICATION (SMART VERSION)
+  // 🚀 FUNCTION: SEND PUSH NOTIFICATION (CORS BYPASS VERSION)
   // ==========================================
   const handleSendPush = async () => {
     if (!pushTitle || !pushMessage) { alert("⚠️ Please enter Title and Message"); return; }
@@ -81,14 +81,12 @@ export default function SOSAdminPanel() {
         return; 
       }
 
-      console.log("🚀 Dispatching to tokens:", tokens);
+      console.log("🚀 Dispatching to Backend API with tokens:", tokens);
 
-      // 🌟 ULTRA GOD MODE: Expo ko full security headers ke sath request bhejenge
-      const response = await fetch("https://exp.host/--/api/v2/push/send", {
+      // 🔥 THE MAGIC: Expo ki jagah apni Local API ko call karenge (CORS Error Bypass)
+      const response = await fetch("/api/push", {
         method: "POST",
         headers: { 
-          "Accept": "application/json",
-          "Accept-encoding": "gzip, deflate",
           "Content-Type": "application/json" 
         },
         body: JSON.stringify({ 
@@ -100,17 +98,16 @@ export default function SOSAdminPanel() {
       });
 
       const result = await response.json();
-      console.log("📡 Expo Server Reply:", result);
-
-      if (!response.ok) {
-        throw new Error("Expo API Error: Request Blocked by Server");
+      
+      if (!response.ok || !result.success) {
+        throw new Error("Local API Error: " + (result.error || "Request Failed"));
       }
 
       alert(`✅ Broadcast sent successfully to ${tokens.length} devices! 🚀`);
       setPushTitle(""); setPushMessage("");
     } catch (e) { 
       console.error("🔥 Push Error Details:", e);
-      alert(`❌ Failed: ${e.message}. (Check Browser Console F12 for details)`); 
+      alert(`❌ Failed: ${e.message}`); 
     }
     setIsSending(false);
   };
