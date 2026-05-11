@@ -49,7 +49,7 @@ export default function SOSAdminPanel() {
   };
 
   const sendWhatsAppAlert = (alert) => {
-    const mapLink = `https://maps.google.com/?q=${alert.lat},${alert.lng}`;
+    const mapLink = `https://maps.google.com/?q=$${alert.lat},${alert.lng}`;
     const message = `🚨 *URGENT SOS EMERGENCY* 🚨\n\n*Name:* ${alert.userName || "Unknown"}\n*Phone:* ${alert.phone || "N/A"}\n\nUser is in danger. Please track the live location below immediately:\n📍 ${mapLink}`;
     
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
@@ -65,7 +65,12 @@ export default function SOSAdminPanel() {
     try {
       const usersSnap = await getDocs(collection(db, "users"));
       let tokens = [];
-      usersSnap.forEach(u => { if (u.data().expoPushToken) tokens.push(u.data().expoPushToken); });
+      
+      // 🌟 ULTRA GOD MODE FIX 1: Dono database naam support karega
+      usersSnap.forEach(u => { 
+        const userToken = u.data().pushToken || u.data().expoPushToken;
+        if (userToken) tokens.push(userToken); 
+      });
 
       if (tokens.length === 0) { alert("❌ No devices registered for notifications!"); setIsSending(false); return; }
 
@@ -205,7 +210,7 @@ export default function SOSAdminPanel() {
                         {/* ACTIONS */}
                         <div className="flex gap-3">
                           <button onClick={() => markAsResolved(alert.id)} className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black text-xs hover:bg-red-600 transition-all shadow-lg">MARK AS RESOLVED</button>
-                          <button onClick={() => window.open(`https://maps.google.com/?q=${alert.lat},${alert.lng}`, '_blank')} className="w-16 bg-white border-2 border-slate-900 text-slate-900 rounded-2xl flex items-center justify-center hover:bg-slate-50 transition-all">
+                          <button onClick={() => window.open(`https://maps.google.com/?q=$${alert.lat},${alert.lng}`, '_blank')} className="w-16 bg-white border-2 border-slate-900 text-slate-900 rounded-2xl flex items-center justify-center hover:bg-slate-50 transition-all">
                             <ExternalLink className="w-5 h-5" />
                           </button>
                         </div>
@@ -303,7 +308,8 @@ export default function SOSAdminPanel() {
                             {user.phone || user.email || "N/A"}
                           </td>
                           <td className="p-6">
-                            {user.expoPushToken ? (
+                            {/* 🌟 ULTRA GOD MODE FIX 2: UI Table Status Fix */}
+                            {(user.pushToken || user.expoPushToken) ? (
                                <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">App Installed</span>
                             ) : (
                                <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-[10px] font-black uppercase tracking-widest">No Device Token</span>
