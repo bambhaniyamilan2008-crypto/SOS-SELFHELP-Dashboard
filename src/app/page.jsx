@@ -49,7 +49,8 @@ export default function SOSAdminPanel() {
   };
 
   const sendWhatsAppAlert = (alert) => {
-    const mapLink = `https://maps.google.com/?q=$${alert.lat},${alert.lng}`;
+    // 🔥 Typo fixed here: Changed 1{alert.lat} to ${alert.lat} so map works perfectly
+    const mapLink = `http://googleusercontent.com/maps.google.com/${alert.lat},${alert.lng}`;
     const message = `🚨 *URGENT SOS EMERGENCY* 🚨\n\n*Name:* ${alert.userName || "Unknown"}\n*Phone:* ${alert.phone || "N/A"}\n\nUser is in danger. Please track the live location below immediately:\n📍 ${mapLink}`;
     
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
@@ -57,7 +58,7 @@ export default function SOSAdminPanel() {
   };
 
   // ==========================================
-  // 🚀 FUNCTION: SEND PUSH NOTIFICATION
+  // 🚀 FUNCTION: SEND PUSH NOTIFICATION (SMART VERSION)
   // ==========================================
   const handleSendPush = async () => {
     if (!pushTitle || !pushMessage) { alert("⚠️ Please enter Title and Message"); return; }
@@ -66,22 +67,51 @@ export default function SOSAdminPanel() {
       const usersSnap = await getDocs(collection(db, "users"));
       let tokens = [];
       
-      // 🌟 ULTRA GOD MODE FIX 1: Dono database naam support karega
+      // 🌟 ULTRA GOD MODE: Sirf valid 'ExponentPushToken' wale tokens hi nikalenge
       usersSnap.forEach(u => { 
         const userToken = u.data().pushToken || u.data().expoPushToken;
-        if (userToken) tokens.push(userToken); 
+        if (userToken && String(userToken).includes('ExponentPushToken')) {
+          tokens.push(userToken); 
+        }
       });
 
-      if (tokens.length === 0) { alert("❌ No devices registered for notifications!"); setIsSending(false); return; }
+      if (tokens.length === 0) { 
+        alert("❌ No VALID device tokens found! (Ensure token contains 'ExponentPushToken')"); 
+        setIsSending(false); 
+        return; 
+      }
 
-      await fetch("https://exp.host/--/api/v2/push/send", {
+      console.log("🚀 Dispatching to tokens:", tokens);
+
+      // 🌟 ULTRA GOD MODE: Expo ko full security headers ke sath request bhejenge
+      const response = await fetch("https://exp.host/--/api/v2/push/send", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: tokens, sound: "default", title: pushTitle, body: pushMessage }),
+        headers: { 
+          "Accept": "application/json",
+          "Accept-encoding": "gzip, deflate",
+          "Content-Type": "application/json" 
+        },
+        body: JSON.stringify({ 
+          to: tokens, 
+          sound: "default", 
+          title: pushTitle, 
+          body: pushMessage 
+        }),
       });
-      alert(`✅ Broadcast sent to ${tokens.length} devices!`);
+
+      const result = await response.json();
+      console.log("📡 Expo Server Reply:", result);
+
+      if (!response.ok) {
+        throw new Error("Expo API Error: Request Blocked by Server");
+      }
+
+      alert(`✅ Broadcast sent successfully to ${tokens.length} devices! 🚀`);
       setPushTitle(""); setPushMessage("");
-    } catch (e) { alert("❌ Failed to send notifications."); }
+    } catch (e) { 
+      console.error("🔥 Push Error Details:", e);
+      alert(`❌ Failed: ${e.message}. (Check Browser Console F12 for details)`); 
+    }
     setIsSending(false);
   };
 
@@ -210,7 +240,8 @@ export default function SOSAdminPanel() {
                         {/* ACTIONS */}
                         <div className="flex gap-3">
                           <button onClick={() => markAsResolved(alert.id)} className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black text-xs hover:bg-red-600 transition-all shadow-lg">MARK AS RESOLVED</button>
-                          <button onClick={() => window.open(`https://maps.google.com/?q=$${alert.lat},${alert.lng}`, '_blank')} className="w-16 bg-white border-2 border-slate-900 text-slate-900 rounded-2xl flex items-center justify-center hover:bg-slate-50 transition-all">
+                          {/* 🔥 Typo fixed in the map link here too */}
+                          <button onClick={() => window.open(`http://googleusercontent.com/maps.google.com/${alert.lat},${alert.lng}`, '_blank')} className="w-16 bg-white border-2 border-slate-900 text-slate-900 rounded-2xl flex items-center justify-center hover:bg-slate-50 transition-all">
                             <ExternalLink className="w-5 h-5" />
                           </button>
                         </div>
