@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   AlertCircle, MapPin, ShieldAlert, Clock, Trash2, ExternalLink,
   Shield, Activity, MessageCircle, Smartphone, Send, Users, UserX,
@@ -54,7 +54,8 @@ export default function SOSAdminPanel() {
   };
 
   const sendWhatsAppAlert = (alert) => {
-    const mapLink = `http://googleusercontent.com/maps.google.com/${alert.lat},${alert.lng}`;
+    // 🌟 100000% VERIFIED MAP LINK
+    const mapLink = `https://www.google.com/maps/search/?api=1&query=${alert.lat},${alert.lng}`;
     const message = `🚨 *URGENT SOS EMERGENCY* 🚨\n\n*Name:* ${alert.userName || "Unknown"}\n*Phone:* ${alert.phone || "N/A"}\n\nUser is in danger. Please track the live location below immediately:\n📍 ${mapLink}`;
     
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
@@ -71,7 +72,6 @@ export default function SOSAdminPanel() {
       const usersSnap = await getDocs(collection(db, "users"));
       let targetToken = null;
       
-      // Match user by name, phone or ID to find their specific token
       usersSnap.forEach(u => {
         const uData = u.data();
         if ((uData.name === alertData.userName || uData.phone === alertData.phone || u.id === alertData.userId) && 
@@ -84,11 +84,10 @@ export default function SOSAdminPanel() {
       });
 
       if (!targetToken) {
-        alert("❌ This user does not have a valid Device Token! (User not fully registered)");
+        alert("❌ This user does not have a valid Device Token!");
         return;
       }
 
-      // Local API (Bypass CORS) ko hit karenge
       const response = await fetch("/api/push", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -129,7 +128,7 @@ export default function SOSAdminPanel() {
       });
 
       if (tokens.length === 0) { 
-        alert("❌ No VALID device tokens found! (Ensure token contains 'ExponentPushToken')"); 
+        alert("❌ No VALID device tokens found!"); 
         setIsSending(false); 
         return; 
       }
@@ -184,7 +183,7 @@ export default function SOSAdminPanel() {
   const activeCount = alerts.filter(a => a.status === 'active').length;
   
   const todayAlerts = alerts.filter(a => {
-    if (!a.timestamp?.seconds) return true; // Keep pending in today
+    if (!a.timestamp?.seconds) return true; 
     const alertDate = new Date(a.timestamp.seconds * 1000);
     const today = new Date();
     return alertDate.toDateString() === today.toDateString();
@@ -245,7 +244,6 @@ export default function SOSAdminPanel() {
                 <p className="text-slate-400 text-xs font-bold uppercase mt-2">Active Surveillance Feed</p>
               </div>
               
-              {/* TAB SWITCHER: TODAY VS HISTORY */}
               <div className="flex bg-slate-200/50 p-1 rounded-2xl">
                 <button 
                   onClick={() => setMonitorView("live")} 
@@ -280,7 +278,6 @@ export default function SOSAdminPanel() {
                       {displayedAlerts.map((alert) => (
                         <tr key={alert.id} className={`hover:bg-slate-50 transition-colors group ${alert.status === 'active' ? 'bg-red-50/20' : ''}`}>
                           
-                          {/* USER INFO */}
                           <td className="p-6">
                             <div className="flex items-center gap-4">
                               <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-white shadow-inner ${alert.status === 'active' ? 'bg-red-500 animate-pulse' : 'bg-slate-400'}`}>
@@ -293,21 +290,20 @@ export default function SOSAdminPanel() {
                             </div>
                           </td>
 
-                          {/* TIME & LOCATION */}
                           <td className="p-6">
                             <p className="text-[11px] font-bold text-slate-600 flex items-center gap-2 mb-1">
                               <Clock className="w-3 h-3 text-slate-400" /> 
                               {alert.timestamp?.seconds ? new Date(alert.timestamp.seconds * 1000).toLocaleString() : "Pending"}
                             </p>
+                            {/* 🌟 100000% VERIFIED MAP LINK FOR BUTTON */}
                             <button 
-                              onClick={() => window.open(`http://googleusercontent.com/maps.google.com/${alert.lat},${alert.lng}`, '_blank')} 
+                              onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${alert.lat},${alert.lng}`, '_blank')} 
                               className="text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-widest flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-md w-fit"
                             >
                               <MapPin className="w-3 h-3" /> Live Map
                             </button>
                           </td>
 
-                          {/* EMERGENCY ACTIONS */}
                           <td className="p-6">
                             {alert.status === 'active' ? (
                               <div className="flex items-center gap-2">
@@ -320,7 +316,6 @@ export default function SOSAdminPanel() {
                                 <button onClick={() => sendWhatsAppAlert(alert)} className="p-2.5 bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-600 hover:text-white transition-all border border-emerald-100" title="WhatsApp Family">
                                   <MessageCircle className="w-5 h-5" />
                                 </button>
-                                {/* 🔥 NEW: DIRECT MESSAGE BUTTON */}
                                 <button onClick={() => sendDirectMessage(alert)} className="flex items-center gap-2 px-3 py-2.5 bg-purple-50 text-purple-700 rounded-xl hover:bg-purple-600 hover:text-white transition-all border border-purple-100" title="Send Help Notification">
                                   <BellRing className="w-5 h-5" />
                                   <span className="text-[10px] font-black uppercase tracking-widest hidden md:inline">Notify</span>
@@ -331,7 +326,6 @@ export default function SOSAdminPanel() {
                             )}
                           </td>
 
-                          {/* STATUS & DELETE */}
                           <td className="p-6 text-right flex items-center justify-end gap-3 h-full">
                             {alert.status === 'active' ? (
                               <button onClick={() => markAsResolved(alert.id)} className="px-5 py-3 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg">
@@ -354,7 +348,7 @@ export default function SOSAdminPanel() {
                         <tr>
                           <td colSpan="4" className="p-12 text-center">
                             <ShieldAlert className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-                            <p className="font-black text-slate-400 uppercase tracking-widest text-sm">No alerts found in this view</p>
+                            <p className="font-black text-slate-400 uppercase tracking-widest text-sm">No alerts found</p>
                           </td>
                         </tr>
                       )}
@@ -375,7 +369,6 @@ export default function SOSAdminPanel() {
               <h2 className="text-4xl font-black uppercase italic tracking-tighter text-blue-600">Broadcast Center</h2>
               <p className="text-slate-400 text-xs font-bold uppercase mt-2">Global App Notifications</p>
             </header>
-
             <div className="bg-white p-12 rounded-[3.5rem] shadow-2xl border border-blue-50">
                <div className="flex items-center gap-5 mb-10">
                   <div className="bg-blue-600 p-5 rounded-2xl text-white shadow-xl shadow-blue-500/30"><Smartphone className="w-8 h-8" /></div>
@@ -416,7 +409,6 @@ export default function SOSAdminPanel() {
                 <span className="text-2xl font-black text-purple-600">{usersList.length.toString().padStart(2, '0')}</span>
               </div>
             </header>
-
             {loadingUsers ? (
               <div className="font-black text-slate-300 animate-pulse uppercase text-center mt-20">Loading Database...</div>
             ) : (
@@ -445,9 +437,7 @@ export default function SOSAdminPanel() {
                               </div>
                             </div>
                           </td>
-                          <td className="p-6 font-bold text-slate-600 text-sm">
-                            {user.phone || user.email || "N/A"}
-                          </td>
+                          <td className="p-6 font-bold text-slate-600 text-sm">{user.phone || user.email || "N/A"}</td>
                           <td className="p-6">
                             {(user.pushToken || user.expoPushToken) ? (
                                <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">App Installed</span>
@@ -456,21 +446,12 @@ export default function SOSAdminPanel() {
                             )}
                           </td>
                           <td className="p-6 text-right">
-                            <button 
-                              onClick={() => deleteUserRecord(user.id, user.name || "Unknown")}
-                              className="p-3 bg-white border-2 border-slate-200 text-slate-400 rounded-xl hover:border-red-600 hover:text-red-600 hover:bg-red-50 transition-all"
-                              title="Delete User"
-                            >
+                            <button onClick={() => deleteUserRecord(user.id, user.name || "Unknown")} className="p-3 bg-white border-2 border-slate-200 text-slate-400 rounded-xl hover:border-red-600 hover:text-red-600 hover:bg-red-50 transition-all">
                               <UserX className="w-5 h-5" />
                             </button>
                           </td>
                         </tr>
                       ))}
-                      {usersList.length === 0 && (
-                        <tr>
-                          <td colSpan="4" className="p-10 text-center font-black text-slate-300 uppercase tracking-widest">No users found in database</td>
-                        </tr>
-                      )}
                     </tbody>
                   </table>
                 </div>
@@ -478,7 +459,6 @@ export default function SOSAdminPanel() {
             )}
           </div>
         )}
-
       </main>
     </div>
   );
