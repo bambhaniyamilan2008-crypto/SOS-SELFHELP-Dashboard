@@ -2,7 +2,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   AlertCircle, MapPin, ShieldAlert, Clock, Trash2, ExternalLink,
-  Shield, Activity, MessageCircle, Smartphone, Send, Users, UserX
+  Shield, Activity, MessageCircle, Smartphone, Send, Users, UserX,
+  History, Radio, BellRing
 } from 'lucide-react';
 
 // FIREBASE IMPORTS 
@@ -15,6 +16,9 @@ import { db } from './firebaseConfig';
 export default function SOSAdminPanel() {
   // 🟢 NAVIGATION STATE (Master Switch)
   const [activeTab, setActiveTab] = useState("monitor"); 
+  
+  // 🟢 MONITOR VIEW STATE (Live vs History)
+  const [monitorView, setMonitorView] = useState("live"); // "live" | "history"
 
   // 🔴 1. MONITOR STATES
   const [alerts, setAlerts] = useState([]);
@@ -44,12 +48,12 @@ export default function SOSAdminPanel() {
   const markAsResolved = async (alertId) => {
     await updateDoc(doc(db, "alerts", alertId), { status: "resolved", resolvedAt: new Date().toISOString() });
   };
+  
   const deleteAlert = async (alertId) => {
     if (window.confirm("Permanently delete this alert record?")) await deleteDoc(doc(db, "alerts", alertId));
   };
 
   const sendWhatsAppAlert = (alert) => {
-    // 🔥 Typo fixed here: Changed 1{alert.lat} to ${alert.lat} so map works perfectly
     const mapLink = `http://googleusercontent.com/maps.google.com/${alert.lat},${alert.lng}`;
     const message = `🚨 *URGENT SOS EMERGENCY* 🚨\n\n*Name:* ${alert.userName || "Unknown"}\n*Phone:* ${alert.phone || "N/A"}\n\nUser is in danger. Please track the live location below immediately:\n📍 ${mapLink}`;
     
@@ -58,7 +62,57 @@ export default function SOSAdminPanel() {
   };
 
   // ==========================================
-  // 🚀 FUNCTION: SEND PUSH NOTIFICATION (CORS BYPASS VERSION)
+  // 💬 FUNCTION: SEND DIRECT HELP MESSAGE
+  // ==========================================
+  const sendDirectMessage = async (alertData) => {
+    if (!window.confirm(`Are you sure you want to send a 'Help is on the way' notification to "${alertData.userName || 'User'}"?`)) return;
+    
+    try {
+      const usersSnap = await getDocs(collection(db, "users"));
+      let targetToken = null;
+      
+      // Match user by name, phone or ID to find their specific token
+      usersSnap.forEach(u => {
+        const uData = u.data();
+        if ((uData.name === alertData.userName || uData.phone === alertData.phone || u.id === alertData.userId) && 
+            (uData.pushToken || uData.expoPushToken)) {
+          const token = uData.pushToken || uData.expoPushToken;
+          if (String(token).includes("ExponentPushToken")) {
+             targetToken = token;
+          }
+        }
+      });
+
+      if (!targetToken) {
+        alert("❌ This user does not have a valid Device Token! (User not fully registered)");
+        return;
+      }
+
+      // Local API (Bypass CORS) ko hit karenge
+      const response = await fetch("/api/push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          to: [targetToken], 
+          sound: "default", 
+          title: "🚨 HELP IS ON THE WAY!", 
+          body: "We have received your emergency alert. Help is dispatched and on the way. Please stay calm and safe!" 
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error("API Failed");
+      
+      alert(`✅ Message successfully sent to ${alertData.userName || 'User'}!`);
+
+    } catch (error) {
+      console.error("Direct Msg Error:", error);
+      alert(`❌ Failed to send message: ${error.message}`);
+    }
+  };
+
+  // ==========================================
+  // 🚀 FUNCTION: SEND PUSH NOTIFICATION (ALL USERS)
   // ==========================================
   const handleSendPush = async () => {
     if (!pushTitle || !pushMessage) { alert("⚠️ Please enter Title and Message"); return; }
@@ -67,7 +121,6 @@ export default function SOSAdminPanel() {
       const usersSnap = await getDocs(collection(db, "users"));
       let tokens = [];
       
-      // 🌟 ULTRA GOD MODE: Sirf valid 'ExponentPushToken' wale tokens hi nikalenge
       usersSnap.forEach(u => { 
         const userToken = u.data().pushToken || u.data().expoPushToken;
         if (userToken && String(userToken).includes('ExponentPushToken')) {
@@ -81,14 +134,9 @@ export default function SOSAdminPanel() {
         return; 
       }
 
-      console.log("🚀 Dispatching to Backend API with tokens:", tokens);
-
-      // 🔥 THE MAGIC: Expo ki jagah apni Local API ko call karenge (CORS Error Bypass)
       const response = await fetch("/api/push", {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json" 
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           to: tokens, 
           sound: "default", 
@@ -98,7 +146,6 @@ export default function SOSAdminPanel() {
       });
 
       const result = await response.json();
-      
       if (!response.ok || !result.success) {
         throw new Error("Local API Error: " + (result.error || "Request Failed"));
       }
@@ -127,11 +174,30 @@ export default function SOSAdminPanel() {
   const deleteUserRecord = async (userId, userName) => {
     if (window.confirm(`Are you sure you want to delete user: ${userName}? This cannot be undone.`)) {
       await deleteDoc(doc(db, "users", userId));
-      fetchAllUsers(); // Refresh list after delete
+      fetchAllUsers(); 
     }
   };
 
+  // ==========================================
+  // 🗂️ DATA FILTERING (TODAY vs HISTORY)
+  // ==========================================
   const activeCount = alerts.filter(a => a.status === 'active').length;
+  
+  const todayAlerts = alerts.filter(a => {
+    if (!a.timestamp?.seconds) return true; // Keep pending in today
+    const alertDate = new Date(a.timestamp.seconds * 1000);
+    const today = new Date();
+    return alertDate.toDateString() === today.toDateString();
+  });
+
+  const historyAlerts = alerts.filter(a => {
+    if (!a.timestamp?.seconds) return false;
+    const alertDate = new Date(a.timestamp.seconds * 1000);
+    const today = new Date();
+    return alertDate.toDateString() !== today.toDateString();
+  });
+
+  const displayedAlerts = monitorView === "live" ? todayAlerts : historyAlerts;
 
   return (
     <div className="flex min-h-screen bg-[#f8fafc] font-sans antialiased text-slate-900">
@@ -146,23 +212,17 @@ export default function SOSAdminPanel() {
         </div>
         
         <nav className="flex-1 p-6 space-y-4">
-          {/* TAB 1: LIVE MONITOR */}
           <button onClick={() => setActiveTab("monitor")} className={`w-full flex items-center justify-between p-4 rounded-2xl font-bold transition-all ${activeTab === "monitor" ? "bg-red-600 text-white shadow-lg" : "text-slate-400 hover:bg-slate-900"}`}>
             <div className="flex items-center gap-3"><Activity className="w-5 h-5" /><span>Live Monitor</span></div>
             {activeCount > 0 && <span className="bg-white text-red-600 text-[10px] px-2 py-0.5 rounded-full font-black animate-pulse">LIVE</span>}
           </button>
 
-          {/* TAB 2: PUSH BROADCAST */}
           <button onClick={() => setActiveTab("push")} className={`w-full flex items-center gap-3 p-4 rounded-2xl font-bold transition-all ${activeTab === "push" ? "bg-blue-600 text-white shadow-lg" : "text-slate-400 hover:bg-slate-900"}`}>
             <Smartphone className="w-5 h-5" /><span>Push Broadcast</span>
           </button>
 
-          {/* TAB 3: USER MANAGEMENT */}
           <button 
-            onClick={() => {
-              setActiveTab("users");
-              fetchAllUsers(); 
-            }} 
+            onClick={() => { setActiveTab("users"); fetchAllUsers(); }} 
             className={`w-full flex items-center gap-3 p-4 rounded-2xl font-bold transition-all ${activeTab === "users" ? "bg-purple-600 text-white shadow-lg" : "text-slate-400 hover:bg-slate-900"}`}
           >
             <Users className="w-5 h-5" /><span>User Database</span>
@@ -174,80 +234,133 @@ export default function SOSAdminPanel() {
       <main className="flex-1 ml-72 p-12">
         
         {/* =========================================
-            SCREEN 1: LIVE MONITOR
+            SCREEN 1: LIVE MONITOR (TABLE FORMAT)
         ========================================= */}
         {activeTab === "monitor" && (
           <div className="animate-in fade-in slide-in-from-left duration-300">
+            
             <header className="mb-10 flex justify-between items-end border-b border-slate-200 pb-8">
               <div>
                 <h2 className="text-4xl font-black uppercase italic tracking-tighter">Emergency Monitor</h2>
                 <p className="text-slate-400 text-xs font-bold uppercase mt-2">Active Surveillance Feed</p>
               </div>
-              <div className="bg-white border-2 border-slate-100 px-6 py-3 rounded-2xl shadow-sm flex flex-col items-end">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Threats</span>
-                <span className={`text-2xl font-black ${activeCount > 0 ? 'text-red-600 animate-pulse' : 'text-slate-900'}`}>{activeCount.toString().padStart(2, '0')}</span>
+              
+              {/* TAB SWITCHER: TODAY VS HISTORY */}
+              <div className="flex bg-slate-200/50 p-1 rounded-2xl">
+                <button 
+                  onClick={() => setMonitorView("live")} 
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${monitorView === "live" ? "bg-white text-red-600 shadow-sm" : "text-slate-500 hover:text-slate-900"}`}
+                >
+                  <Radio className="w-4 h-4" /> Today&apos;s SOS
+                </button>
+                <button 
+                  onClick={() => setMonitorView("history")} 
+                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${monitorView === "history" ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-900"}`}
+                >
+                  <History className="w-4 h-4" /> Past History
+                </button>
               </div>
             </header>
 
             {loadingAlerts ? (
               <div className="font-black text-slate-300 animate-pulse uppercase text-center mt-20">Initializing Stream...</div>
             ) : (
-              <div className="grid gap-8 md:grid-cols-2 xl:grid-cols-3">
-                {alerts.map((alert) => (
-                  <div key={alert.id} className={`p-8 rounded-[2.5rem] border-2 transition-all ${alert.status === 'active' ? 'bg-white border-red-600 shadow-2xl' : 'bg-slate-50 border-transparent opacity-60'}`}>
-                    <div className="flex justify-between mb-6">
-                      <div className={`p-4 rounded-3xl ${alert.status === 'active' ? 'bg-red-600 text-white animate-pulse' : 'bg-slate-400'}`}><ShieldAlert className="w-7 h-7" /></div>
-                      <button onClick={() => deleteAlert(alert.id)} className="text-slate-300 hover:text-red-600"><Trash2 className="w-5 h-5" /></button>
-                    </div>
-                    <h3 className="text-xl font-black uppercase truncate">{alert.userName || "SECURE USER"}</h3>
-                    <p className="text-[11px] font-bold text-slate-400 mb-6 uppercase"><Clock className="w-3 h-3 inline mr-1" />{alert.timestamp?.seconds ? new Date(alert.timestamp.seconds * 1000).toLocaleString() : "Pending"}</p>
-                    
-                    <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6">
-                      <div className="p-2 bg-white rounded-lg shadow-sm border border-slate-100">
-                        <MapPin className="w-4 h-4 text-red-600" />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Live Coordinates</p>
-                        <p className="text-xs font-bold text-slate-700">
-                          {alert.lat && alert.lng ? `${alert.lat.toFixed(4)}° N, ${alert.lng.toFixed(4)}° E` : "SIGNAL WEAK"}
-                        </p>
-                      </div>
-                    </div>
+              <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-100">
+                        <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Victim Info</th>
+                        <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Time & Location</th>
+                        <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">Emergency Actions</th>
+                        <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {displayedAlerts.map((alert) => (
+                        <tr key={alert.id} className={`hover:bg-slate-50 transition-colors group ${alert.status === 'active' ? 'bg-red-50/20' : ''}`}>
+                          
+                          {/* USER INFO */}
+                          <td className="p-6">
+                            <div className="flex items-center gap-4">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-white shadow-inner ${alert.status === 'active' ? 'bg-red-500 animate-pulse' : 'bg-slate-400'}`}>
+                                <ShieldAlert className="w-5 h-5" />
+                              </div>
+                              <div>
+                                <h4 className="font-black text-slate-900 uppercase">{alert.userName || "SECURE USER"}</h4>
+                                <p className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">{alert.phone || "No Phone"}</p>
+                              </div>
+                            </div>
+                          </td>
 
-                    {alert.status === 'active' ? (
-                      <>
-                        {/* 🔥 HOT-LINKS SECTION WAPAS AA GAYA */}
-                        <div className="flex justify-between gap-3 mb-6">
-                          <button onClick={() => window.open('tel:100')} className="flex-1 flex flex-col items-center justify-center py-3 bg-blue-50 text-blue-700 rounded-2xl hover:bg-blue-600 hover:text-white transition-all border border-blue-100 shadow-sm">
-                            <Shield className="w-5 h-5 mb-1" />
-                            <span className="text-[9px] font-black uppercase tracking-widest">Police</span>
-                          </button>
+                          {/* TIME & LOCATION */}
+                          <td className="p-6">
+                            <p className="text-[11px] font-bold text-slate-600 flex items-center gap-2 mb-1">
+                              <Clock className="w-3 h-3 text-slate-400" /> 
+                              {alert.timestamp?.seconds ? new Date(alert.timestamp.seconds * 1000).toLocaleString() : "Pending"}
+                            </p>
+                            <button 
+                              onClick={() => window.open(`http://googleusercontent.com/maps.google.com/${alert.lat},${alert.lng}`, '_blank')} 
+                              className="text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-widest flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-md w-fit"
+                            >
+                              <MapPin className="w-3 h-3" /> Live Map
+                            </button>
+                          </td>
 
-                          <button onClick={() => window.open('tel:108')} className="flex-1 flex flex-col items-center justify-center py-3 bg-rose-50 text-rose-700 rounded-2xl hover:bg-rose-600 hover:text-white transition-all border border-rose-100 shadow-sm">
-                            <Activity className="w-5 h-5 mb-1" />
-                            <span className="text-[9px] font-black uppercase tracking-widest">Medical</span>
-                          </button>
+                          {/* EMERGENCY ACTIONS */}
+                          <td className="p-6">
+                            {alert.status === 'active' ? (
+                              <div className="flex items-center gap-2">
+                                <button onClick={() => window.open('tel:100')} className="p-2.5 bg-blue-50 text-blue-700 rounded-xl hover:bg-blue-600 hover:text-white transition-all border border-blue-100" title="Call Police">
+                                  <Shield className="w-5 h-5" />
+                                </button>
+                                <button onClick={() => window.open('tel:108')} className="p-2.5 bg-rose-50 text-rose-700 rounded-xl hover:bg-rose-600 hover:text-white transition-all border border-rose-100" title="Call Medical">
+                                  <Activity className="w-5 h-5" />
+                                </button>
+                                <button onClick={() => sendWhatsAppAlert(alert)} className="p-2.5 bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-600 hover:text-white transition-all border border-emerald-100" title="WhatsApp Family">
+                                  <MessageCircle className="w-5 h-5" />
+                                </button>
+                                {/* 🔥 NEW: DIRECT MESSAGE BUTTON */}
+                                <button onClick={() => sendDirectMessage(alert)} className="flex items-center gap-2 px-3 py-2.5 bg-purple-50 text-purple-700 rounded-xl hover:bg-purple-600 hover:text-white transition-all border border-purple-100" title="Send Help Notification">
+                                  <BellRing className="w-5 h-5" />
+                                  <span className="text-[10px] font-black uppercase tracking-widest hidden md:inline">Notify</span>
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-[10px] font-bold text-slate-400 uppercase italic">Actions Locked</span>
+                            )}
+                          </td>
 
-                          <button onClick={() => sendWhatsAppAlert(alert)} className="flex-1 flex flex-col items-center justify-center py-3 bg-emerald-50 text-emerald-700 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all border border-emerald-100 shadow-sm">
-                            <MessageCircle className="w-5 h-5 mb-1" />
-                            <span className="text-[9px] font-black uppercase tracking-widest">Family</span>
-                          </button>
-                        </div>
+                          {/* STATUS & DELETE */}
+                          <td className="p-6 text-right flex items-center justify-end gap-3 h-full">
+                            {alert.status === 'active' ? (
+                              <button onClick={() => markAsResolved(alert.id)} className="px-5 py-3 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg">
+                                Mark Resolved
+                              </button>
+                            ) : (
+                              <span className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100">
+                                Resolved
+                              </span>
+                            )}
+                            <button onClick={() => deleteAlert(alert.id)} className="p-2 text-slate-300 hover:text-red-600 transition-colors" title="Delete Record">
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </td>
 
-                        {/* ACTIONS */}
-                        <div className="flex gap-3">
-                          <button onClick={() => markAsResolved(alert.id)} className="flex-1 bg-slate-900 text-white py-4 rounded-2xl font-black text-xs hover:bg-red-600 transition-all shadow-lg">MARK AS RESOLVED</button>
-                          {/* 🔥 Typo fixed in the map link here too */}
-                          <button onClick={() => window.open(`http://googleusercontent.com/maps.google.com/${alert.lat},${alert.lng}`, '_blank')} className="w-16 bg-white border-2 border-slate-900 text-slate-900 rounded-2xl flex items-center justify-center hover:bg-slate-50 transition-all">
-                            <ExternalLink className="w-5 h-5" />
-                          </button>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="py-4 bg-emerald-50 text-emerald-600 rounded-2xl font-black text-xs text-center border border-emerald-100 uppercase italic">Situation Resolved</div>
-                    )}
-                  </div>
-                ))}
+                        </tr>
+                      ))}
+                      
+                      {displayedAlerts.length === 0 && (
+                        <tr>
+                          <td colSpan="4" className="p-12 text-center">
+                            <ShieldAlert className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+                            <p className="font-black text-slate-400 uppercase tracking-widest text-sm">No alerts found in this view</p>
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </div>
@@ -336,7 +449,6 @@ export default function SOSAdminPanel() {
                             {user.phone || user.email || "N/A"}
                           </td>
                           <td className="p-6">
-                            {/* 🌟 ULTRA GOD MODE FIX 2: UI Table Status Fix */}
                             {(user.pushToken || user.expoPushToken) ? (
                                <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-[10px] font-black uppercase tracking-widest">App Installed</span>
                             ) : (
