@@ -54,9 +54,8 @@ export default function SOSAdminPanel() {
   };
 
   const sendWhatsAppAlert = (alert) => {
-    // 🌟 100000% VERIFIED MAP LINK
     const mapLink = `https://www.google.com/maps/search/?api=1&query=${alert.lat},${alert.lng}`;
-    const message = `🚨 *URGENT SOS EMERGENCY* 🚨\n\n*Name:* ${alert.userName || "Unknown"}\n*Phone:* ${alert.phone || "N/A"}\n\nUser is in danger. Please track the live location below immediately:\n📍 ${mapLink}`;
+    const message = `🚨 *URGENT SOS EMERGENCY* 🚨\n\n*Name:* ${alert.userName || "Unknown"}\n*Phone:* ${alert.phone || "N/A"}\n*Type:* ${alert.type || "General SOS"}\n\nUser is in danger. Please track the live location below immediately:\n📍 ${mapLink}`;
     
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
@@ -278,6 +277,7 @@ export default function SOSAdminPanel() {
                       {displayedAlerts.map((alert) => (
                         <tr key={alert.id} className={`hover:bg-slate-50 transition-colors group ${alert.status === 'active' ? 'bg-red-50/20' : ''}`}>
                           
+                          {/* 🌟 UPGRADED: VICTIM INFO WITH BADGES */}
                           <td className="p-6">
                             <div className="flex items-center gap-4">
                               <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-white shadow-inner ${alert.status === 'active' ? 'bg-red-500 animate-pulse' : 'bg-slate-400'}`}>
@@ -285,7 +285,20 @@ export default function SOSAdminPanel() {
                               </div>
                               <div>
                                 <h4 className="font-black text-slate-900 uppercase">{alert.userName || "SECURE USER"}</h4>
-                                <p className="text-[10px] font-bold text-slate-500 tracking-widest uppercase">{alert.phone || "No Phone"}</p>
+                                <p className="text-[10px] font-bold text-slate-500 tracking-widest uppercase mb-1">{alert.phone || "No Phone"}</p>
+                                
+                                {/* SMART CATEGORY BADGE */}
+                                {alert.type && (
+                                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border ${
+                                    alert.type.includes('Visually') ? 'bg-red-100 text-red-700 border-red-200 animate-pulse' :
+                                    alert.type.includes('Police') ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                    alert.type.includes('Medical') ? 'bg-rose-100 text-rose-700 border-rose-200' :
+                                    alert.type.includes('Fire') ? 'bg-orange-100 text-orange-700 border-orange-200' :
+                                    'bg-slate-100 text-slate-700 border-slate-200'
+                                  }`}>
+                                    {alert.type}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </td>
@@ -295,7 +308,6 @@ export default function SOSAdminPanel() {
                               <Clock className="w-3 h-3 text-slate-400" /> 
                               {alert.timestamp?.seconds ? new Date(alert.timestamp.seconds * 1000).toLocaleString() : "Pending"}
                             </p>
-                            {/* 🌟 100000% VERIFIED MAP LINK FOR BUTTON */}
                             <button 
                               onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${alert.lat},${alert.lng}`, '_blank')} 
                               className="text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-widest flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-md w-fit"
