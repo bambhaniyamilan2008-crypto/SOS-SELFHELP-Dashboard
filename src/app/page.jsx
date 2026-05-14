@@ -17,7 +17,7 @@ import {
   History,
   Radio,
   BellRing,
-  Mic, // 🔥 NAYA ICON AUDIO KE LIYE
+  Mic, 
 } from "lucide-react";
 import {
   collection,
@@ -33,32 +33,23 @@ import {
 import { db } from "./firebaseConfig";
 
 export default function SOSAdminPanel() {
-  // 🟢 NAVIGATION STATE
   const [activeTab, setActiveTab] = useState("monitor");
   const [monitorView, setMonitorView] = useState("live");
 
-  // 🔴 MONITOR STATES
   const [alerts, setAlerts] = useState([]);
   const [loadingAlerts, setLoadingAlerts] = useState(true);
 
-  // 🎙️ NAYA STATE: STEALTH AUDIO ALERTS
   const [stealthAudios, setStealthAudios] = useState([]);
   const [loadingAudios, setLoadingAudios] = useState(true);
 
-  // 🔵 PUSH NOTIFICATION STATES
   const [pushTitle, setPushTitle] = useState("");
   const [pushMessage, setPushMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
 
-  // 🟠 USERS STATES
   const [usersList, setUsersList] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
 
-  // ==========================================
-  // 📡 REAL-TIME MONITORING (ALERTS & AUDIO)
-  // ==========================================
   useEffect(() => {
-    // 1. Purana SOS Alerts Listener (Unchanged)
     const qAlerts = query(
       collection(db, "alerts"),
       orderBy("timestamp", "desc"),
@@ -71,7 +62,6 @@ export default function SOSAdminPanel() {
       setLoadingAlerts(false);
     });
 
-    // 2. 🔥 NAYA AUDIO ALERTS LISTENER
     const qAudio = query(
       collection(db, "stealth_audio_alerts"),
       orderBy("timestamp", "desc"),
@@ -103,7 +93,6 @@ export default function SOSAdminPanel() {
     }
   };
 
-  // 🔥 NAYA FUNCTION: Delete Secret Audio
   const deleteAudio = async (audioId) => {
     if (window.confirm("Permanently delete this secret audio intercept?")) {
       await deleteDoc(doc(db, "stealth_audio_alerts", audioId));
@@ -227,7 +216,6 @@ export default function SOSAdminPanel() {
     }
   };
 
-  // 🗂️ DATA FILTERING (TODAY vs HISTORY)
   const activeCount = alerts.filter((a) => a.status === "active").length;
   const displayedAlerts =
     monitorView === "live"
@@ -247,7 +235,6 @@ export default function SOSAdminPanel() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc] text-slate-900">
       
-      {/* 🟢 SIDEBAR */}
       <aside className="w-72 bg-slate-950 text-white flex flex-col fixed h-full shadow-2xl z-50">
         <div className="p-8 flex items-center gap-4 border-b border-slate-800/50">
           <div className="bg-red-600 p-2 rounded-lg">
@@ -305,10 +292,8 @@ export default function SOSAdminPanel() {
         </nav>
       </aside>
 
-      {/* 🔵 MAIN CONTENT */}
       <main className="flex-1 ml-72 p-12">
         
-        {/* ======================= TAB 1: MONITOR ======================= */}
         {activeTab === "monitor" && (
           <div className="animate-in fade-in duration-300">
             <header className="mb-10 flex justify-between items-end border-b border-slate-200 pb-8">
@@ -509,7 +494,7 @@ export default function SOSAdminPanel() {
               </table>
             </div>
 
-            {/* 🔥 YAHAN ADD KIYA HAI VIP SECRET AUDIO INTERCEPTS DASHBOARD 🔥 */}
+            {/* 🔥 SECRET AUDIO ALERTS - QUOTES FIXED 🔥 */}
             <div className="mt-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <header className="mb-6 flex justify-between items-end border-b border-slate-200 pb-4">
                 <div>
@@ -528,7 +513,6 @@ export default function SOSAdminPanel() {
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {stealthAudios.map((audio) => (
                   <div key={audio.id} className="bg-slate-950 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
-                    {/* Live Recording Red Indicator Line */}
                     <div className="absolute top-0 left-0 w-full h-1 bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.8)]"></div>
                     
                     <div className="flex justify-between items-start mb-6">
@@ -551,7 +535,6 @@ export default function SOSAdminPanel() {
                       </button>
                     </div>
                     
-                    {/* Minimalist Native Audio Player */}
                     <audio 
                       controls 
                       className="w-full h-10 outline-none filter invert sepia hue-rotate-[180deg] saturate-200 opacity-90 transition-opacity hover:opacity-100"
@@ -573,7 +556,6 @@ export default function SOSAdminPanel() {
                 )}
               </div>
             </div>
-            {/* 🔥 SECRET AUDIO DASHBOARD ENDS HERE 🔥 */}
 
           </div>
         )}
