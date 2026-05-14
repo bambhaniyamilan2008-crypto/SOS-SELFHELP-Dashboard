@@ -17,6 +17,7 @@ import {
   History,
   Radio,
   BellRing,
+  Mic, // 🔥 NAYA ICON AUDIO KE LIYE
 } from "lucide-react";
 import {
   collection,
@@ -40,6 +41,10 @@ export default function SOSAdminPanel() {
   const [alerts, setAlerts] = useState([]);
   const [loadingAlerts, setLoadingAlerts] = useState(true);
 
+  // 🎙️ NAYA STATE: STEALTH AUDIO ALERTS
+  const [stealthAudios, setStealthAudios] = useState([]);
+  const [loadingAudios, setLoadingAudios] = useState(true);
+
   // 🔵 PUSH NOTIFICATION STATES
   const [pushTitle, setPushTitle] = useState("");
   const [pushMessage, setPushMessage] = useState("");
@@ -50,21 +55,39 @@ export default function SOSAdminPanel() {
   const [loadingUsers, setLoadingUsers] = useState(false);
 
   // ==========================================
-  // 📡 REAL-TIME MONITORING
+  // 📡 REAL-TIME MONITORING (ALERTS & AUDIO)
   // ==========================================
   useEffect(() => {
-    const q = query(
+    // 1. Purana SOS Alerts Listener (Unchanged)
+    const qAlerts = query(
       collection(db, "alerts"),
       orderBy("timestamp", "desc"),
       limit(100)
     );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribeAlerts = onSnapshot(qAlerts, (snapshot) => {
       setAlerts(
         snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
       );
       setLoadingAlerts(false);
     });
-    return () => unsubscribe();
+
+    // 2. 🔥 NAYA AUDIO ALERTS LISTENER
+    const qAudio = query(
+      collection(db, "stealth_audio_alerts"),
+      orderBy("timestamp", "desc"),
+      limit(50)
+    );
+    const unsubscribeAudio = onSnapshot(qAudio, (snapshot) => {
+      setStealthAudios(
+        snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+      );
+      setLoadingAudios(false);
+    });
+
+    return () => {
+      unsubscribeAlerts();
+      unsubscribeAudio();
+    };
   }, []);
 
   const markAsResolved = async (alertId) => {
@@ -80,8 +103,14 @@ export default function SOSAdminPanel() {
     }
   };
 
+  // 🔥 NAYA FUNCTION: Delete Secret Audio
+  const deleteAudio = async (audioId) => {
+    if (window.confirm("Permanently delete this secret audio intercept?")) {
+      await deleteDoc(doc(db, "stealth_audio_alerts", audioId));
+    }
+  };
+
   const sendWhatsAppAlert = (alert) => {
-    // 🌟 OFFICIAL GOOGLE MAPS LINK FIXED
     const mapLink = `https://maps.google.com/?q=${alert.lat},${alert.lng}`;
     const cleanName = alert.userName
       ? alert.userName.replace(/^.*\]\s*/, "")
@@ -479,6 +508,73 @@ export default function SOSAdminPanel() {
                 </tbody>
               </table>
             </div>
+
+            {/* 🔥 YAHAN ADD KIYA HAI VIP SECRET AUDIO INTERCEPTS DASHBOARD 🔥 */}
+            <div className="mt-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <header className="mb-6 flex justify-between items-end border-b border-slate-200 pb-4">
+                <div>
+                  <h3 className="text-2xl font-black uppercase italic tracking-tighter text-red-600 flex items-center gap-3">
+                    <div className="p-2 bg-red-100 rounded-lg">
+                      <Mic className="w-6 h-6 text-red-600 animate-pulse" />
+                    </div>
+                    Secret Audio Intercepts
+                  </h3>
+                  <p className="text-slate-400 text-[10px] font-bold uppercase mt-1 tracking-widest">
+                    Live Stealth Recordings From Victim&apos;s Device
+                  </p>
+                </div>
+              </header>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {stealthAudios.map((audio) => (
+                  <div key={audio.id} className="bg-slate-950 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
+                    {/* Live Recording Red Indicator Line */}
+                    <div className="absolute top-0 left-0 w-full h-1 bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.8)]"></div>
+                    
+                    <div className="flex justify-between items-start mb-6">
+                      <div>
+                        <span className="bg-red-500/20 text-red-500 text-[9px] px-2.5 py-1 rounded-md font-black uppercase tracking-widest border border-red-500/30">
+                          Intercepted Audio
+                        </span>
+                        <p className="text-slate-400 text-[11px] font-bold flex items-center gap-1 mt-3 uppercase tracking-widest">
+                          <Clock className="w-3 h-3" />
+                          {audio.timestamp?.seconds
+                            ? new Date(audio.timestamp.seconds * 1000).toLocaleString()
+                            : "Just Now..."}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => deleteAudio(audio.id)}
+                        className="p-2 bg-white/5 rounded-xl text-slate-500 hover:bg-red-500/20 hover:text-red-500 transition-all"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    
+                    {/* Minimalist Native Audio Player */}
+                    <audio 
+                      controls 
+                      className="w-full h-10 outline-none filter invert sepia hue-rotate-[180deg] saturate-200 opacity-90 transition-opacity hover:opacity-100"
+                    >
+                      <source src={audio.audioUrl} type="audio/mp4" />
+                      <source src={audio.audioUrl} type="audio/mpeg" />
+                      Browser doesn&apos;t support audio.
+                    </audio>
+                  </div>
+                ))}
+
+                {stealthAudios.length === 0 && !loadingAudios && (
+                  <div className="col-span-full p-10 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200">
+                    <Mic className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+                    <p className="text-slate-400 text-xs font-black uppercase tracking-widest">
+                      No secret intercepts recorded yet
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* 🔥 SECRET AUDIO DASHBOARD ENDS HERE 🔥 */}
+
           </div>
         )}
 
