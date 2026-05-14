@@ -17,7 +17,7 @@ import {
   History,
   Radio,
   BellRing,
-  Mic, 
+  Mic, // 🔥 NAYA ICON AUDIO KE LIYE
 } from "lucide-react";
 import {
   collection,
@@ -33,23 +33,32 @@ import {
 import { db } from "./firebaseConfig";
 
 export default function SOSAdminPanel() {
+  // 🟢 NAVIGATION STATE
   const [activeTab, setActiveTab] = useState("monitor");
   const [monitorView, setMonitorView] = useState("live");
 
+  // 🔴 MONITOR STATES
   const [alerts, setAlerts] = useState([]);
   const [loadingAlerts, setLoadingAlerts] = useState(true);
 
+  // 🎙️ NAYA STATE: STEALTH AUDIO ALERTS
   const [stealthAudios, setStealthAudios] = useState([]);
+  const [loadingAudios, setLoadingAudios] = useState(true);
 
+  // 🔵 PUSH NOTIFICATION STATES
   const [pushTitle, setPushTitle] = useState("");
   const [pushMessage, setPushMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
 
+  // 🟠 USERS STATES
   const [usersList, setUsersList] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
 
+  // ==========================================
+  // 📡 REAL-TIME MONITORING (ALERTS & AUDIO)
+  // ==========================================
   useEffect(() => {
-    // 1. Alerts Listener
+    // 1. Purana SOS Alerts Listener (Unchanged)
     const qAlerts = query(
       collection(db, "alerts"),
       orderBy("timestamp", "desc"),
@@ -62,7 +71,7 @@ export default function SOSAdminPanel() {
       setLoadingAlerts(false);
     });
 
-    // 2. Audio Listener
+    // 2. 🔥 NAYA AUDIO ALERTS LISTENER
     const qAudio = query(
       collection(db, "stealth_audio_alerts"),
       orderBy("timestamp", "desc"),
@@ -72,6 +81,7 @@ export default function SOSAdminPanel() {
       setStealthAudios(
         snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
       );
+      setLoadingAudios(false);
     });
 
     return () => {
@@ -90,6 +100,13 @@ export default function SOSAdminPanel() {
   const deleteAlert = async (alertId) => {
     if (window.confirm("Permanently delete this alert record?")) {
       await deleteDoc(doc(db, "alerts", alertId));
+    }
+  };
+
+  // 🔥 NAYA FUNCTION: Delete Secret Audio
+  const deleteAudio = async (audioId) => {
+    if (window.confirm("Permanently delete this secret audio intercept?")) {
+      await deleteDoc(doc(db, "stealth_audio_alerts", audioId));
     }
   };
 
@@ -210,6 +227,7 @@ export default function SOSAdminPanel() {
     }
   };
 
+  // 🗂️ DATA FILTERING (TODAY vs HISTORY)
   const activeCount = alerts.filter((a) => a.status === "active").length;
   const displayedAlerts =
     monitorView === "live"
@@ -229,6 +247,7 @@ export default function SOSAdminPanel() {
   return (
     <div className="flex min-h-screen bg-[#f8fafc] text-slate-900">
       
+      {/* 🟢 SIDEBAR */}
       <aside className="w-72 bg-slate-950 text-white flex flex-col fixed h-full shadow-2xl z-50">
         <div className="p-8 flex items-center gap-4 border-b border-slate-800/50">
           <div className="bg-red-600 p-2 rounded-lg">
@@ -286,8 +305,10 @@ export default function SOSAdminPanel() {
         </nav>
       </aside>
 
+      {/* 🔵 MAIN CONTENT */}
       <main className="flex-1 ml-72 p-12">
         
+        {/* ======================= TAB 1: MONITOR ======================= */}
         {activeTab === "monitor" && (
           <div className="animate-in fade-in duration-300">
             <header className="mb-10 flex justify-between items-end border-b border-slate-200 pb-8">
@@ -334,10 +355,6 @@ export default function SOSAdminPanel() {
                     <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">
                       Time & Location
                     </th>
-                    {/* 🔥 NAYA COLUMN: AUDIO FEED 🔥 */}
-                    <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                      Live Audio Feed
-                    </th>
                     <th className="p-6 text-[10px] font-black uppercase text-slate-400 tracking-widest">
                       Emergency Actions
                     </th>
@@ -347,171 +364,140 @@ export default function SOSAdminPanel() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {displayedAlerts.map((alert) => {
-                    // 🔥 AUDIO MATCHING LOGIC 🔥
-                    // Ye check karega ki is alert ke 3 minute aage-peeche koi audio record hua hai kya
-                    const matchedAudio = stealthAudios.find(audio => {
-                      if(!audio.timestamp || !alert.timestamp) return false;
-                      const diff = Math.abs(audio.timestamp.seconds - alert.timestamp.seconds);
-                      return diff < 180; // 3 minutes window
-                    });
-
-                    return (
-                      <tr
-                        key={alert.id}
-                        className={`hover:bg-slate-50 group ${
-                          alert.status === "active" ? "bg-red-50/20" : ""
-                        }`}
-                      >
-                        <td className="p-6">
-                          <div className="flex items-center gap-4">
-                            <div
-                              className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-white ${
-                                alert.status === "active"
-                                  ? "bg-red-500 animate-pulse"
-                                  : "bg-slate-400"
-                              }`}
-                            >
-                              <ShieldAlert className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <h4 className="font-black text-slate-900 uppercase">
-                                {alert.userName
-                                  ? alert.userName.replace(/^.*\]\s*/, "")
-                                  : "SECURE USER"}
-                              </h4>
-                              <p className="text-[10px] font-bold text-slate-500 tracking-widest uppercase mb-1">
-                                {alert.phone || "No Phone"}
-                              </p>
-                              {alert.type && (
-                                <div
-                                  className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border ${
-                                    alert.type.includes("Visually")
-                                      ? "bg-red-100 text-red-700 border-red-200 animate-pulse"
-                                      : alert.type.includes("Police")
-                                      ? "bg-blue-100 text-blue-700 border-blue-200"
-                                      : alert.type.includes("Medical")
-                                      ? "bg-rose-100 text-rose-700 border-rose-200"
-                                      : alert.type.includes("Fire")
-                                      ? "bg-orange-100 text-orange-700 border-orange-200"
-                                      : "bg-slate-100 text-slate-700 border-slate-200"
-                                  }`}
-                                >
-                                  {alert.type}
-                                </div>
-                              )}
-                            </div>
+                  {displayedAlerts.map((alert) => (
+                    <tr
+                      key={alert.id}
+                      className={`hover:bg-slate-50 group ${
+                        alert.status === "active" ? "bg-red-50/20" : ""
+                      }`}
+                    >
+                      <td className="p-6">
+                        <div className="flex items-center gap-4">
+                          <div
+                            className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-white ${
+                              alert.status === "active"
+                                ? "bg-red-500 animate-pulse"
+                                : "bg-slate-400"
+                            }`}
+                          >
+                            <ShieldAlert className="w-5 h-5" />
                           </div>
-                        </td>
-                        
-                        <td className="p-6">
-                          <p className="text-[11px] font-bold text-slate-600 flex items-center gap-2 mb-1">
-                            <Clock className="w-3 h-3" />
-                            {alert.timestamp?.seconds
-                              ? new Date(
-                                  alert.timestamp.seconds * 1000
-                                ).toLocaleString()
-                              : "Pending"}
-                          </p>
-                          <button
-                            onClick={() =>
-                              window.open(
-                                `https://maps.google.com/?q=${alert.lat},${alert.lng}`,
-                                "_blank"
-                              )
-                            }
-                            className="text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-widest flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-md w-max"
-                          >
-                            <MapPin className="w-3 h-3" /> Live Map
-                          </button>
-                        </td>
-
-                        {/* 🔥 YAHAN PLAYER AAYEGA DIRECT ROW MEIN 🔥 */}
-                        <td className="p-6">
-                          {matchedAudio ? (
-                            <div className="flex flex-col gap-2">
-                              <span className="flex items-center gap-1 text-[9px] font-black uppercase text-red-600 bg-red-100 px-2 py-1 rounded-md w-max animate-pulse border border-red-200">
-                                <Mic className="w-3 h-3" /> Audio Intercepted
-                              </span>
-                              <audio 
-                                controls 
-                                className="w-40 h-8 opacity-70 hover:opacity-100 transition-opacity"
+                          <div>
+                            <h4 className="font-black text-slate-900 uppercase">
+                              {alert.userName
+                                ? alert.userName.replace(/^.*\]\s*/, "")
+                                : "SECURE USER"}
+                            </h4>
+                            <p className="text-[10px] font-bold text-slate-500 tracking-widest uppercase mb-1">
+                              {alert.phone || "No Phone"}
+                            </p>
+                            {alert.type && (
+                              <div
+                                className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border ${
+                                  alert.type.includes("Visually")
+                                    ? "bg-red-100 text-red-700 border-red-200 animate-pulse"
+                                    : alert.type.includes("Police")
+                                    ? "bg-blue-100 text-blue-700 border-blue-200"
+                                    : alert.type.includes("Medical")
+                                    ? "bg-rose-100 text-rose-700 border-rose-200"
+                                    : alert.type.includes("Fire")
+                                    ? "bg-orange-100 text-orange-700 border-orange-200"
+                                    : "bg-slate-100 text-slate-700 border-slate-200"
+                                }`}
                               >
-                                <source src={matchedAudio.audioUrl} type="audio/mpeg" />
-                              </audio>
-                            </div>
-                          ) : (
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-md border border-slate-200">
-                              No Audio
-                            </span>
-                          )}
-                        </td>
-                        
-                        <td className="p-6">
-                          {alert.status === "active" ? (
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => window.open("tel:100")}
-                                className="p-2.5 bg-blue-50 text-blue-700 rounded-xl border border-blue-100 hover:bg-blue-600 hover:text-white transition-all"
-                              >
-                                <Shield className="w-5 h-5" />
-                              </button>
-                              <button
-                                onClick={() => window.open("tel:108")}
-                                className="p-2.5 bg-rose-50 text-rose-700 rounded-xl border border-rose-100 hover:bg-rose-600 hover:text-white transition-all"
-                              >
-                                <Activity className="w-5 h-5" />
-                              </button>
-                              <button
-                                onClick={() => sendWhatsAppAlert(alert)}
-                                className="p-2.5 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100 hover:bg-emerald-600 hover:text-white transition-all"
-                              >
-                                <MessageCircle className="w-5 h-5" />
-                              </button>
-                              <button
-                                onClick={() => sendDirectMessage(alert)}
-                                className="flex items-center gap-2 px-3 py-2.5 bg-purple-50 text-purple-700 rounded-xl border border-purple-100 hover:bg-purple-600 hover:text-white transition-all"
-                              >
-                                <BellRing className="w-5 h-5" />
-                                <span className="text-[10px] font-black uppercase tracking-widest hidden md:inline">
-                                  Notify
-                                </span>
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-[10px] font-bold text-slate-400 uppercase italic">
-                              Locked
-                            </span>
-                          )}
-                        </td>
-                        
-                        <td className="p-6 text-right flex items-center justify-end gap-3 h-full">
-                          {alert.status === "active" ? (
+                                {alert.type}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      
+                      <td className="p-6">
+                        <p className="text-[11px] font-bold text-slate-600 flex items-center gap-2 mb-1">
+                          <Clock className="w-3 h-3" />
+                          {alert.timestamp?.seconds
+                            ? new Date(
+                                alert.timestamp.seconds * 1000
+                              ).toLocaleString()
+                            : "Pending"}
+                        </p>
+                        <button
+                          onClick={() =>
+                            window.open(
+                              `https://maps.google.com/?q=${alert.lat},${alert.lng}`,
+                              "_blank"
+                            )
+                          }
+                          className="text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-widest flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-md"
+                        >
+                          <MapPin className="w-3 h-3" /> Live Map
+                        </button>
+                      </td>
+                      
+                      <td className="p-6">
+                        {alert.status === "active" ? (
+                          <div className="flex items-center gap-2">
                             <button
-                              onClick={() => markAsResolved(alert.id)}
-                              className="px-5 py-3 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-red-600 shadow-lg transition-all"
+                              onClick={() => window.open("tel:100")}
+                              className="p-2.5 bg-blue-50 text-blue-700 rounded-xl border border-blue-100 hover:bg-blue-600 hover:text-white transition-all"
                             >
-                              Mark Resolved
+                              <Shield className="w-5 h-5" />
                             </button>
-                          ) : (
-                            <span className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase border border-emerald-100">
-                              Resolved
-                            </span>
-                          )}
+                            <button
+                              onClick={() => window.open("tel:108")}
+                              className="p-2.5 bg-rose-50 text-rose-700 rounded-xl border border-rose-100 hover:bg-rose-600 hover:text-white transition-all"
+                            >
+                              <Activity className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => sendWhatsAppAlert(alert)}
+                              className="p-2.5 bg-emerald-50 text-emerald-700 rounded-xl border border-emerald-100 hover:bg-emerald-600 hover:text-white transition-all"
+                            >
+                              <MessageCircle className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => sendDirectMessage(alert)}
+                              className="flex items-center gap-2 px-3 py-2.5 bg-purple-50 text-purple-700 rounded-xl border border-purple-100 hover:bg-purple-600 hover:text-white transition-all"
+                            >
+                              <BellRing className="w-5 h-5" />
+                              <span className="text-[10px] font-black uppercase tracking-widest hidden md:inline">
+                                Notify
+                              </span>
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] font-bold text-slate-400 uppercase italic">
+                            Locked
+                          </span>
+                        )}
+                      </td>
+                      
+                      <td className="p-6 text-right flex items-center justify-end gap-3 h-full">
+                        {alert.status === "active" ? (
                           <button
-                            onClick={() => deleteAlert(alert.id)}
-                            className="p-2 text-slate-300 hover:text-red-600 transition-all"
+                            onClick={() => markAsResolved(alert.id)}
+                            className="px-5 py-3 bg-slate-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-red-600 shadow-lg transition-all"
                           >
-                            <Trash2 className="w-5 h-5" />
+                            Mark Resolved
                           </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                        ) : (
+                          <span className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase border border-emerald-100">
+                            Resolved
+                          </span>
+                        )}
+                        <button
+                          onClick={() => deleteAlert(alert.id)}
+                          className="p-2 text-slate-300 hover:text-red-600 transition-all"
+                        >
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
                   
                   {displayedAlerts.length === 0 && (
                     <tr>
-                      <td colSpan="5" className="p-12 text-center">
+                      <td colSpan="4" className="p-12 text-center">
                         <ShieldAlert className="w-12 h-12 text-slate-200 mx-auto mb-3" />
                         <p className="font-black text-slate-400 uppercase tracking-widest text-sm">
                           No alerts found
@@ -522,6 +508,73 @@ export default function SOSAdminPanel() {
                 </tbody>
               </table>
             </div>
+
+            {/* 🔥 YAHAN ADD KIYA HAI VIP SECRET AUDIO INTERCEPTS DASHBOARD 🔥 */}
+            <div className="mt-16 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <header className="mb-6 flex justify-between items-end border-b border-slate-200 pb-4">
+                <div>
+                  <h3 className="text-2xl font-black uppercase italic tracking-tighter text-red-600 flex items-center gap-3">
+                    <div className="p-2 bg-red-100 rounded-lg">
+                      <Mic className="w-6 h-6 text-red-600 animate-pulse" />
+                    </div>
+                    Secret Audio Intercepts
+                  </h3>
+                  <p className="text-slate-400 text-[10px] font-bold uppercase mt-1 tracking-widest">
+                    Live Stealth Recordings From Victim&apos;s Device
+                  </p>
+                </div>
+              </header>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                {stealthAudios.map((audio) => (
+                  <div key={audio.id} className="bg-slate-950 rounded-3xl p-6 shadow-2xl relative overflow-hidden group">
+                    {/* Live Recording Red Indicator Line */}
+                    <div className="absolute top-0 left-0 w-full h-1 bg-red-600 shadow-[0_0_15px_rgba(220,38,38,0.8)]"></div>
+                    
+                    <div className="flex justify-between items-start mb-6">
+                      <div>
+                        <span className="bg-red-500/20 text-red-500 text-[9px] px-2.5 py-1 rounded-md font-black uppercase tracking-widest border border-red-500/30">
+                          Intercepted Audio
+                        </span>
+                        <p className="text-slate-400 text-[11px] font-bold flex items-center gap-1 mt-3 uppercase tracking-widest">
+                          <Clock className="w-3 h-3" />
+                          {audio.timestamp?.seconds
+                            ? new Date(audio.timestamp.seconds * 1000).toLocaleString()
+                            : "Just Now..."}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => deleteAudio(audio.id)}
+                        className="p-2 bg-white/5 rounded-xl text-slate-500 hover:bg-red-500/20 hover:text-red-500 transition-all"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                    
+                    {/* Minimalist Native Audio Player */}
+                    <audio 
+                      controls 
+                      className="w-full h-10 outline-none filter invert sepia hue-rotate-[180deg] saturate-200 opacity-90 transition-opacity hover:opacity-100"
+                    >
+                      <source src={audio.audioUrl} type="audio/mp4" />
+                      <source src={audio.audioUrl} type="audio/mpeg" />
+                      Browser doesn&apos;t support audio.
+                    </audio>
+                  </div>
+                ))}
+
+                {stealthAudios.length === 0 && !loadingAudios && (
+                  <div className="col-span-full p-10 text-center bg-white rounded-3xl border-2 border-dashed border-slate-200">
+                    <Mic className="w-8 h-8 text-slate-300 mx-auto mb-3" />
+                    <p className="text-slate-400 text-xs font-black uppercase tracking-widest">
+                      No secret intercepts recorded yet
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+            {/* 🔥 SECRET AUDIO DASHBOARD ENDS HERE 🔥 */}
+
           </div>
         )}
 
